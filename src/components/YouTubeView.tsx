@@ -17,11 +17,12 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
   const [uploadBudget, setUploadBudget] = useState(10000);
   const [uploadThumbnail, setUploadThumbnail] = useState('');
   
+  const eligibleReleases = gameState.releases.filter(r => r.status === 'Published' || r.status === 'Scheduled');
   const publishedReleases = gameState.releases.filter(r => r.status === 'Published');
-  const allSongs = publishedReleases.filter(r => r.type === 'Single') as Song[];
+  const allSongs = eligibleReleases.filter(r => r.type === 'Single') as Song[];
   
   // Also get tracks from albums
-  const albums = publishedReleases.filter(r => r.type === 'Album') as Album[];
+  const albums = eligibleReleases.filter(r => r.type === 'Album') as Album[];
   albums.forEach(a => {
     a.trackIds.forEach(tid => {
        const s = gameState.releases.find(rel => rel.id === tid) as Song;
@@ -33,14 +34,17 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
 
   const videos = gameState.videos || [];
   
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUploadThumbnail(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        // compress image instead of reading raw
+        const { compressImage } = await import('../imageUtils');
+        const compressed = await compressImage(file, 400, 400, 0.7);
+        setUploadThumbnail(compressed);
+      } catch (err) {
+        console.error("Compression err", err);
+      }
     }
   };
 
@@ -57,12 +61,17 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
     const currentDate = new Date(gameState.time.startDate);
     currentDate.setDate(currentDate.getDate() + gameState.time.daysPassed);
 
+    let pubDate = currentDate.toISOString();
+    if (song.status === 'Scheduled' && song.releaseDate) {
+        pubDate = song.releaseDate; // matches scheduled song date
+    }
+
     const newVideo: Video = {
       id: `vid_${Date.now()}`,
       songId: song.id,
       title: `${gameState.artist?.name} - ${song.title} (Official Music Video)`,
       type: 'MusicVideo',
-      publishDate: currentDate.toISOString(),
+      publishDate: pubDate,
       views: 0,
       budget: uploadBudget,
       thumbnail: uploadThumbnail || song.coverImage
@@ -115,8 +124,12 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
      const currentDate = new Date(gameState.time.startDate);
      currentDate.setDate(currentDate.getDate() + gameState.time.daysPassed);
      
-     const diffTime = Math.abs(currentDate.getTime() - publishDate.getTime());
-     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+     const diffTime = currentDate.getTime() - publishDate.getTime();
+     if (diffTime < 0) {
+        const daysUntil = Math.ceil(Math.abs(diffTime) / (1000 * 60 * 60 * 24));
+        return `Premieres in ${daysUntil} day${daysUntil === 1 ? '' : 's'}`;
+     }
+     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
      
      if (diffDays === 0) return "Today";
      if (diffDays === 1) return "1 day ago";

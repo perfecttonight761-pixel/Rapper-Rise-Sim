@@ -10,7 +10,7 @@ interface GrammysViewProps {
 
 export function GrammysView({ gameState, setGameState }: GrammysViewProps) {
   const [activeTab, setActiveTab] = useState<'current' | 'profile'>('current');
-  const grammys = gameState.grammys || { year: 2024, stage: 'Closed', submittedReleaseIds: [], results: [] };
+  const grammys = gameState.grammys || { year: 2024, stage: 'Closed' as const, submissions: [], submittedReleaseIds: [], results: [], history: [] };
   const currentYear = new Date(gameState.time.startDate).getFullYear() + Math.floor(gameState.time.daysPassed / 365);
   
   const handleSubmission = (category: string, workId: string) => {
@@ -38,12 +38,13 @@ export function GrammysView({ gameState, setGameState }: GrammysViewProps) {
   });
 
   const eligibleSingles = eligibleReleases.filter(r => r.type === 'Single');
-  const eligibleAlbums = eligibleReleases.filter(r => r.type === 'Studio Album' || r.type === 'EP');
+  const eligibleAlbums = eligibleReleases.filter(r => r.type === 'Album');
 
   const submissionCategories = [
     { id: 'Artist of the Year', name: 'Artist of the Year', type: 'Artist' },
     { id: 'Record of the Year', name: 'Record of the Year', type: 'Single' },
     { id: 'Song of the Year', name: 'Song of the Year', type: 'Single' },
+    { id: 'Best Pop Duo/Group Performance', name: 'Best Pop Duo/Group Performance', type: 'Collab' },
     { id: 'Album of the Year', name: 'Album of the Year', type: 'Album' },
     { id: 'Best Pop Album', name: 'Best Pop Album', type: 'Album', genre: ['Pop', 'Kpop'] },
     { id: 'Best Rap Album', name: 'Best Rap Album', type: 'Album', genre: ['Rap'] },
@@ -221,6 +222,8 @@ export function GrammysView({ gameState, setGameState }: GrammysViewProps) {
                   options = [{ id: 'artist', title: `${gameState.artist?.name || 'Self'} (${cat.name})` }];
                 } else if (cat.type === 'Single') {
                   options = eligibleSingles;
+                } else if (cat.type === 'Collab') {
+                  options = eligibleSingles.filter(s => (s as any).featuredArtistCost);
                 } else if (cat.type === 'Album') {
                   options = eligibleAlbums.filter(a => !cat.genre || (a as any).genre && cat.genre.includes((a as any).genre));
                 }

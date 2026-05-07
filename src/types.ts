@@ -1,6 +1,6 @@
-export type GameScreen = 'home' | 'create' | 'dashboard' | 'studio' | 'discography' | 'skills' | 'regions' | 'gigs' | 'platforms' | 'charts' | 'x' | 'google' | 'settings' | 'youtube' | 'plaques' | 'grammys';
+export type GameScreen = 'home' | 'saves' | 'create' | 'dashboard' | 'studio' | 'discography' | 'skills' | 'regions' | 'gigs' | 'platforms' | 'charts' | 'x' | 'google' | 'settings' | 'youtube' | 'plaques' | 'grammys' | 'merch';
 
-export type AwardCategory = 'Artist of the Year' | 'Song of the Year' | 'Album of the Year' | 'Record of the Year' | 'Best Pop Album' | 'Best Country Album' | 'Best Rap Album';
+export type AwardCategory = 'Artist of the Year' | 'Song of the Year' | 'Album of the Year' | 'Record of the Year' | 'Best Pop Album' | 'Best Pop Duo/Group Performance' | 'Best Country Album' | 'Best Rap Album';
 
 export interface GrammysNominee {
   id: string; // release ID or artist name for AOTY
@@ -137,6 +137,18 @@ export interface GameState {
     };
     spotifyArtistPickId?: string;
   } | null;
+  merch: {
+    id: string;
+    releaseId: string;
+    name: string;
+    type: 'Vinyl' | 'CD' | 'Cassette' | 'Digital Download' | 'Box Set' | 'T-Shirt';
+    image: string;
+    price: number;
+    cost: number;
+    stock: number;
+    sold: number;
+    revenue: number;
+  }[];
   skills: {
     performance: number;
     production: number;

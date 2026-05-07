@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, Image as ImageIcon, Music, Check, DollarSign, Calendar } from 'lucide-react';
 import { GameState, Genre, Song, Album, ReleaseStatus, DailyReportData } from '../types';
+import { compressImage } from '../imageUtils';
 
 interface StudioViewProps {
   gameState: GameState;
@@ -42,6 +43,7 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
   const [collab, setCollab] = useState('');
   const [collabCost, setCollabCost] = useState<number>(0);
   const [genre, setGenre] = useState<Genre>('Pop');
+  const [scheduleDays, setScheduleDays] = useState<number>(7);
   
   // Costs: 0=Self, 1=Low, 2=Medium, 3=High
   const [songwriterLvl, setSongwriterLvl] = useState(0);
@@ -69,20 +71,19 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
     return (swQ + pQ + cQ) / 3;
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) {
-        alert('Image too large. Max 1MB.');
-        return;
+      try {
+        const compressed = await compressImage(file, 400, 400, 0.7);
+        setCover(compressed);
+      } catch (err) {
+        console.error("Compression error", err);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => setCover(reader.result as string);
-      reader.readAsDataURL(file);
     }
   };
 
-  const handleCreate = (status: ReleaseStatus, delayDays: number = 0) => {
+  const handleCreate = (status: ReleaseStatus) => {
     if (!title.trim()) return alert("Enter a title");
     
     const cost = calculateTotalCost();
@@ -91,7 +92,9 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
     }
 
     const releaseDateObj = new Date(currentDate);
-    releaseDateObj.setDate(releaseDateObj.getDate() + delayDays);
+    if (status === 'Scheduled') {
+       releaseDateObj.setDate(releaseDateObj.getDate() + scheduleDays);
+    }
 
     let finalTitle = title;
     if (collab.trim() && !title.toLowerCase().includes('feat')) {
@@ -218,9 +221,19 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
          <button onClick={() => handleCreate('Vaulted')} className="bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors">
            Save to Vault
          </button>
-         <button onClick={() => handleCreate('Scheduled', 7)} className="bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors flex items-center justify-center gap-2">
-           <Calendar className="w-4 h-4" /> Schedule (7 Days)
-         </button>
+         <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:border-purple-500 transition-colors">
+            <input 
+              type="number" 
+              min="1" 
+              max="30" 
+              value={scheduleDays}
+              onChange={(e) => setScheduleDays(Math.max(1, Math.min(30, Number(e.target.value))))}
+              className="w-16 bg-transparent text-center text-white outline-none font-bold"
+            />
+            <button onClick={() => handleCreate('Scheduled')} className="flex-1 bg-transparent hover:bg-white/5 p-4 font-bold uppercase tracking-widest text-xs transition-colors border-l border-white/10 flex items-center justify-center gap-2">
+              <Calendar className="w-4 h-4" /> Schedule (Days)
+            </button>
+         </div>
          <button onClick={() => handleCreate('Published')} className="bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.4)]">
            <Check className="w-4 h-4" /> Release Now
          </button>
@@ -234,17 +247,20 @@ function CreateAlbumForm({ gameState, setGameState, currentDate }: StudioViewPro
   const [cover, setCover] = useState('');
   const [title, setTitle] = useState('');
   const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
+  const [scheduleDays, setScheduleDays] = useState<number>(30);
 
   // Get eligible tracks (we only use Singles that are already Vaulted or Published, but usually Vaulted are used for albums before release, or maybe they can bundle existing published ones. Prompt says 'tracklist vault/released').
   const eligibleTracks = gameState.releases.filter(r => r.type === 'Single' && (r.status === 'Vaulted' || r.status === 'Published'));
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) return;
-      const reader = new FileReader();
-      reader.onloadend = () => setCover(reader.result as string);
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 400, 400, 0.7);
+        setCover(compressed);
+      } catch (err) {
+        console.error("Compression error", err);
+      }
     }
   };
 
@@ -256,12 +272,14 @@ function CreateAlbumForm({ gameState, setGameState, currentDate }: StudioViewPro
     }
   };
 
-  const handleCreate = (status: ReleaseStatus, delayDays: number = 0) => {
+  const handleCreate = (status: ReleaseStatus) => {
     if (!title.trim()) return alert("Enter title");
     if (selectedTracks.length === 0) return alert("Select at least 1 track");
 
     const releaseDateObj = new Date(currentDate);
-    releaseDateObj.setDate(releaseDateObj.getDate() + delayDays);
+    if (status === 'Scheduled') {
+       releaseDateObj.setDate(releaseDateObj.getDate() + scheduleDays);
+    }
 
     const newAlbum: Album = {
       id: 'album_' + Date.now(),
@@ -338,9 +356,19 @@ function CreateAlbumForm({ gameState, setGameState, currentDate }: StudioViewPro
          <button onClick={() => handleCreate('Vaulted')} className="bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors">
            Save to Vault
          </button>
-         <button onClick={() => handleCreate('Scheduled', 14)} className="bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors flex items-center justify-center gap-2">
-           <Calendar className="w-4 h-4" /> Schedule (14 Days)
-         </button>
+         <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:border-purple-500 transition-colors">
+            <input 
+              type="number" 
+              min="1" 
+              max="120" 
+              value={scheduleDays}
+              onChange={(e) => setScheduleDays(Math.max(1, Math.min(120, Number(e.target.value))))}
+              className="w-16 bg-transparent text-center text-white outline-none font-bold"
+            />
+            <button onClick={() => handleCreate('Scheduled')} className="flex-1 bg-transparent hover:bg-white/5 p-4 font-bold uppercase tracking-widest text-xs transition-colors border-l border-white/10 flex items-center justify-center gap-2">
+              <Calendar className="w-4 h-4" /> Schedule (Days)
+            </button>
+         </div>
          <button onClick={() => handleCreate('Published')} className="bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.4)]">
            <Check className="w-4 h-4" /> Release Now
          </button>

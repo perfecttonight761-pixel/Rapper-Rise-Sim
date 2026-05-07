@@ -22,6 +22,7 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
     'Song of the Year',
     'Album of the Year',
     'Record of the Year',
+    'Best Pop Duo/Group Performance',
     'Best Pop Album',
     'Best Country Album',
     'Best Rap Album'
@@ -35,7 +36,7 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
     if (type === 'Artist' && sub.workId === 'artist') {
        return { id: gameState.artist?.name || 'Player', title: undefined, artist: gameState.artist?.name || 'Player', isPlayer: true, type: 'Artist' as const };
     }
-    const release = playerReleases.find(r => r.id === sub.workId && (type === 'Single' ? r.type === 'Single' : (r.type === 'Studio Album' || r.type === 'EP')));
+    const release = playerReleases.find(r => r.id === sub.workId && (type === 'Single' ? r.type === 'Single' : r.type === 'Album'));
     if (release) {
        return { id: release.id, title: release.title, artist: gameState.artist?.name || 'Player', isPlayer: true, type };
     }
@@ -65,6 +66,15 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
         const pSub = getSubmittedWork('Album of the Year', 'Album');
         if (pSub) pool.push(pSub);
         npcAlbums.forEach(a => pool.push({ id: a.id, title: a.title, artist: a.artist, isPlayer: false, type: 'Album' }));
+        break;
+      }
+      case 'Best Pop Duo/Group Performance': {
+        const pSub = getSubmittedWork('Best Pop Duo/Group Performance', 'Single');
+        if (pSub) pool.push(pSub);
+        npcSingles.filter(s => {
+           // Assume ~30% of NPC singles are collabs to give some competition
+           return (s.id.charCodeAt(0) % 3) === 0;
+        }).forEach(s => pool.push({ id: s.id, title: s.title, artist: s.artist, isPlayer: false, type: 'Single' }));
         break;
       }
       case 'Best Pop Album': {
@@ -156,28 +166,28 @@ export function pickWinner(categoryResult: GrammysCategoryResult, gameState: Gam
      if (nom.isPlayer) {
         const release = gameState.releases.find(r => r.id === nom.id);
         if (nom.type === 'Artist') {
-           score = (gameState.stats.streams / 40000000) + (gameState.artist?.level || 0) * 10;
+           score = (gameState.stats.streams / 75000000) + (gameState.artist?.level || 0) * 8;
         } else if (release) {
            const streams = typeof release.streams === 'number' ? release.streams : (release.streams as any).total;
            const quality = (release as any).qualityModifier || 5;
-           // Quality provides exponential benefits to winning, tighter now
-           score = (streams / 3500000) + Math.pow(quality, 2.1) * 3;
+           // Quality provides exponential benefits, but require massive streams or perfect quality
+           score = (streams / 5500000) + Math.pow(quality, 2.0) * 2;
         }
      } else {
         const npc = NPC_ARTISTS.find(n => n.name === nom.artist);
         const base = npc?.basePoints || 100000;
         if (nom.type === 'Artist') {
-           score = (base / 5000);
+           score = (base / 3500); // NPCs have slightly boosted base scores
         } else {
-           const points = base * 1.5; // abstract "total success"
+           const points = base * 2.0; // Assume NPCs performed quite well
            const quality = 8 + (nom.id.charCodeAt(0) % 4); // 8 to 11
-           score = (points / 15000) + Math.pow(quality, 2.1) * 3;
+           score = (points / 12000) + Math.pow(quality, 2.1) * 3;
         }
      }
      
      // Add a bit of "jury randomness", make it sway a lot 
      // (so even mega hits can sometimes lose to highly praised jury darlings)
-     const juryRandom = (Math.random() * 40) - 5;
+     const juryRandom = (Math.random() * 50) - 5;
      return score + juryRandom;
   };
 

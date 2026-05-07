@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Download, Search, Upload, User, Image as ImageIcon, MapPin, Music, DollarSign, Calendar as CalendarIcon, Award, Activity, Menu, Save, Loader2, Mic, Disc, Zap, Globe, Ticket, Settings as SettingsIcon, Trophy, BarChart3 } from 'lucide-react';
+import { Play, Download, Search, Upload, User, Image as ImageIcon, MapPin, Music, DollarSign, Calendar as CalendarIcon, Award, Activity, Menu, Save, Loader2, Mic, Disc, Zap, Globe, Ticket, Settings as SettingsIcon, Trophy, BarChart3, ShoppingBag } from 'lucide-react';
 import { GameState, GameScreen, StartCapital, DailyReportData, Song, Album, Gig } from './types';
 import { LEVEL_REQUIREMENTS, NPC_ARTISTS } from './constants';
 import { generateNominees, pickWinner } from './grammyUtils';
 import { DashboardView } from './components/DashboardView';
 import { StudioView } from './components/StudioView';
 import { DiscographyView } from './components/DiscographyView';
+import { MerchStoreView } from './components/MerchStoreView';
 import { SkillsView } from './components/SkillsView';
 import { RegionPopularityView } from './components/RegionPopularityView';
 import { GigsView } from './components/GigsView';
@@ -27,6 +28,12 @@ const CAPITAL_MAP: Record<StartCapital, number> = {
   'High ($100,000)': 100000,
 };
 
+export interface SaveProfile {
+  id: string;
+  artistName: string;
+  lastPlayed: number;
+}
+
 export default function App() {
   const [screen, setScreen] = useState<GameScreen>('home');
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -34,16 +41,28 @@ export default function App() {
   const [dailyReport, setDailyReport] = useState<DailyReportData | null>(null);
   const [isLoadingNextDay, setIsLoadingNextDay] = useState(false);
   const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
+  const [currentSaveId, setCurrentSaveId] = useState<string | null>(null);
+  const [saveProfiles, setSaveProfiles] = useState<SaveProfile[]>([]);
 
   useEffect(() => {
-    // Attempt to load from localStorage on mount
+    // Load saves index
     try {
-      const saved = localStorage.getItem('musician_simulator_save');
-      if (saved) {
-        const json = JSON.parse(saved);
-        if (json && json.version) {
-          setGameState(json);
-          setScreen('dashboard');
+      const idx = localStorage.getItem('musician_simulator_saves_index');
+      if (idx) setSaveProfiles(JSON.parse(idx));
+    } catch {}
+
+    // Attempt to load last active save from localStorage on mount
+    try {
+      const lastId = localStorage.getItem('musician_simulator_last_save_id');
+      if (lastId) {
+        const saved = localStorage.getItem('musician_simulator_save_' + lastId);
+        if (saved) {
+          const json = JSON.parse(saved);
+          if (json && json.version) {
+            setGameState(json);
+            setCurrentSaveId(lastId);
+            setScreen('dashboard');
+          }
         }
       }
     } catch (e) {
@@ -53,14 +72,27 @@ export default function App() {
 
   useEffect(() => {
     // Auto-save whenever gameState changes
-    if (gameState) {
+    if (gameState && currentSaveId) {
       try {
-        localStorage.setItem('musician_simulator_save', JSON.stringify(gameState));
+        localStorage.setItem('musician_simulator_save_' + currentSaveId, JSON.stringify(gameState));
+        localStorage.setItem('musician_simulator_last_save_id', currentSaveId);
+        
+        setSaveProfiles(prev => {
+          let updated = [...prev];
+          const existIdx = updated.findIndex(s => s.id === currentSaveId);
+          if (existIdx >= 0) {
+            updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: gameState.artist?.name || 'Unknown' };
+          } else {
+            updated.push({ id: currentSaveId, artistName: gameState.artist?.name || 'Unknown', lastPlayed: Date.now() });
+          }
+          localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
+          return updated;
+        });
       } catch (e) {
         console.error("Failed to auto-save", e);
       }
     }
-  }, [gameState]);
+  }, [gameState, currentSaveId]);
 
   useEffect(() => {
     // Stop auto advancing if we navigate away from dashboard
@@ -92,6 +124,8 @@ export default function App() {
         try {
           const json = JSON.parse(event.target?.result as string);
           if (json.version) {
+            const newId = 'save_' + Date.now();
+            setCurrentSaveId(newId);
             setGameState(json);
             setScreen('dashboard');
           } else {
@@ -503,15 +537,85 @@ export default function App() {
         return gig;
       });
 
-      revenue += gigPayouts; // Streaming revenue was already added per-release above
+      let merchRevenue = 0;
+      let totalPhysicalSalesToAdd: Record<string, number> = {};
+      let totalDigitalSalesToAdd: Record<string, number> = {};
+
+      const updatedMerch = (gameState.merch || []).map(m => {
+         if (m.sold >= m.stock) return m;
+
+         const linkedRelease = updatedReleases.find(r => r.id === m.releaseId);
+         const pop = Math.max(10, (newAmériquePop + newLatinPop + newEuropePop) / 3);
+         
+         let dailyDemand = (pop / 100) * 100; // base demand 
+         if (linkedRelease) {
+            const daysSincePublished = linkedRelease.releaseDate ? Math.max(0, Math.floor((currentDateObj.getTime() - new Date(linkedRelease.releaseDate).getTime()) / (1000 * 3600 * 24))) : 1000;
+            if (linkedRelease.status === 'Scheduled') {
+                dailyDemand *= 2.5; // Pre-orders hype
+            } else if (daysSincePublished < 14) {
+                dailyDemand *= 4; // Release hype
+            } else if (daysSincePublished > 100) {
+                dailyDemand *= 0.5; // decay
+            }
+         }
+
+         const expectedPrice = m.cost * 1.5; 
+         const priceRatio = m.price / Math.max(1, expectedPrice);
+         // Stricter price penalty: > 2x expected price means almost 0 sales
+         const priceSensitivity = Math.max(0, Math.min(1.5, Math.exp(-(priceRatio - 1) * 2.5))); 
+
+         let dailySales = Math.floor(dailyDemand * priceSensitivity * (0.8 + Math.random() * 0.4));
+         if (dailySales < 0) dailySales = 0;
+
+         const actualSales = Math.min(dailySales, m.stock - m.sold);
+         const dailyMerchRev = actualSales * m.price;
+         merchRevenue += dailyMerchRev;
+         
+         if (actualSales > 0 && linkedRelease) {
+            if (m.type === 'Digital Download') {
+               totalDigitalSalesToAdd[linkedRelease.id] = (totalDigitalSalesToAdd[linkedRelease.id] || 0) + actualSales;
+            } else {
+               totalPhysicalSalesToAdd[linkedRelease.id] = (totalPhysicalSalesToAdd[linkedRelease.id] || 0) + actualSales;
+            }
+         }
+
+         return {
+            ...m,
+            sold: m.sold + actualSales,
+            revenue: m.revenue + dailyMerchRev
+         };
+      });
+
+      revenue += merchRevenue + gigPayouts;
+
+      let updatedReleasesWithSales = updatedReleases.map(r => {
+         const d = totalDigitalSalesToAdd[r.id] || 0;
+         const p = totalPhysicalSalesToAdd[r.id] || 0;
+         if (d > 0 || p > 0 || !r.sales) {
+             const exist = r.sales || { physical: 0, digital: 0, total: 0 };
+             return {
+                 ...r,
+                 sales: {
+                     physical: exist.physical + p,
+                     digital: exist.digital + d,
+                     total: exist.total + p + d
+                 }
+             };
+         }
+         return r;
+      });
 
       let dailyYoutubeViews = 0;
       const updatedVideos = (gameState.videos || []).map(video => {
-         const linkedSong = updatedReleases.find(r => r.id === video.songId) as Song;
+         const linkedSong = updatedReleasesWithSales.find(r => r.id === video.songId) as Song;
          let ytDaily = 0;
-         const daysSincePublished = Math.max(0, Math.floor((currentDateObj.getTime() - new Date(video.publishDate).getTime()) / (1000 * 3600 * 24)));
+         const videoPubDate = new Date(video.publishDate);
+         const daysSincePublished = Math.max(0, Math.floor((currentDateObj.getTime() - videoPubDate.getTime()) / (1000 * 3600 * 24)));
          
-         if (linkedSong) {
+         if (currentDateObj < videoPubDate) {
+             // Scheduled in the future, 0 views
+             ytDaily = 0;
+         } else if (linkedSong) {
             const baseYTStreams = linkedSong.lastDailyStreams?.youtubeMusic || 0;
             const budgetBoost = 1 + (Math.log10(Math.max(1, (video.budget || 5000) / 1000))) * 0.2;
             
@@ -577,7 +681,8 @@ export default function App() {
           year: currentDateObj.getFullYear(), 
           stage: 'Closed' as const, 
           submissions: [], 
-          results: [] 
+          results: [],
+          history: []
         };
         let nextGrammys = { ...currentGrammys };
 
@@ -704,7 +809,8 @@ export default function App() {
             ...prev.time,
             daysPassed: nextDaysPassed
           },
-          releases: updatedReleases,
+          releases: updatedReleasesWithSales,
+          merch: updatedMerch,
           gigs: updatedGigs,
           videos: updatedVideos,
           grammys: nextGrammys
@@ -729,6 +835,8 @@ export default function App() {
     if (!artistData) return;
     const initialMoney = CAPITAL_MAP[artistData.capital];
     
+    const newId = 'save_' + Date.now();
+    setCurrentSaveId(newId);
     setGameState({
       version: 1,
       artist: {
@@ -763,12 +871,14 @@ export default function App() {
         daysPassed: 0
       },
       releases: [],
+      merch: [],
       gigs: [],
       grammys: {
         year: new Date(INITIAL_DATE).getFullYear() + 1,
         stage: 'Closed',
         submissions: [],
-        results: []
+        results: [],
+        history: []
       }
     });
     setScreen('dashboard');
@@ -819,17 +929,26 @@ export default function App() {
           </div>
 
           <div className="space-y-4 max-w-sm mx-auto animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
+            {saveProfiles.length > 0 && (
+              <button 
+                onClick={() => setScreen('saves')}
+                className="w-full h-16 flex items-center justify-center gap-4 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-white active:scale-95 font-black tracking-widest text-sm rounded-2xl transition-all shadow-lg group relative overflow-hidden"
+              >
+                <Activity className="w-5 h-5 fill-current" />
+                RESUME LEGACY
+              </button>
+            )}
             <button 
               onClick={handleStartNew}
               className="w-full h-16 flex items-center justify-center gap-4 bg-white text-black hover:bg-white/90 active:scale-95 font-black tracking-widest text-sm rounded-2xl transition-all shadow-[0_20px_40px_rgba(255,255,255,0.1)] group relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-purple-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               <Play className="w-5 h-5 fill-current" />
-              START LEGACY
+              START NEW
             </button>
             <label className="w-full h-16 flex items-center justify-center gap-4 bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-white font-black tracking-widest text-sm rounded-2xl transition-all cursor-pointer group">
               <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              RELOAD DATA
+              UPLOAD SAVE (JSON)
               <input type="file" accept=".json" className="hidden" onChange={handleLoadSave} />
             </label>
           </div>
@@ -837,6 +956,70 @@ export default function App() {
 
         <div className="absolute bottom-10 text-[10px] font-black tracking-[0.5em] text-white/20 uppercase animate-pulse">
           Select Operation Mode
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === 'saves') {
+    return (
+      <div className="min-h-screen bg-[#050507] flex flex-col items-center justify-center p-6 text-white overflow-hidden relative font-sans selection:bg-purple-500/30">
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-purple-600/10 blur-[150px] rounded-full"></div>
+        </div>
+        <div className="relative z-10 w-full max-w-2xl bg-black/40 border border-white/10 rounded-[2rem] p-8 backdrop-blur-xl">
+           <div className="flex items-center justify-between mb-8">
+             <h2 className="text-3xl font-black italic tracking-tighter text-purple-400">Save Profiles</h2>
+             <button onClick={() => setScreen('home')} className="text-white/40 hover:text-white font-bold text-sm tracking-widest uppercase">
+               Back
+             </button>
+           </div>
+           <div className="space-y-4">
+              {saveProfiles.sort((a,b) => b.lastPlayed - a.lastPlayed).map((profile) => (
+                 <div key={profile.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between hover:bg-white/10 transition-colors">
+                    <div>
+                      <h3 className="text-xl font-bold tracking-tight mb-1">{profile.artistName}</h3>
+                      <p className="text-xs text-white/40 font-bold uppercase tracking-widest">Played: {new Date(profile.lastPlayed).toLocaleString()}</p>
+                    </div>
+                    <div className="flex gap-3">
+                       <button 
+                         onClick={() => {
+                           const saved = localStorage.getItem('musician_simulator_save_' + profile.id);
+                           if (saved) {
+                              setGameState(JSON.parse(saved));
+                              setCurrentSaveId(profile.id);
+                              setScreen('dashboard');
+                           }
+                         }}
+                         className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold text-sm"
+                       >
+                         Resume
+                       </button>
+                       <button 
+                         onClick={() => {
+                           if (confirm("Delete this save?")) {
+                             localStorage.removeItem('musician_simulator_save_' + profile.id);
+                             if (localStorage.getItem('musician_simulator_last_save_id') === profile.id) {
+                               localStorage.removeItem('musician_simulator_last_save_id');
+                             }
+                             setSaveProfiles(prev => {
+                               const updated = prev.filter(p => p.id !== profile.id);
+                               localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
+                               return updated;
+                             });
+                           }
+                         }}
+                         className="px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-500 rounded-lg font-bold text-sm"
+                       >
+                         Delete
+                       </button>
+                    </div>
+                 </div>
+              ))}
+              {saveProfiles.length === 0 && (
+                <div className="text-center text-white/40 p-10 font-bold text-sm">No saves found. Start a new legacy!</div>
+              )}
+           </div>
         </div>
       </div>
     );
@@ -927,6 +1110,13 @@ export default function App() {
               >
                 <Disc className="w-4 h-4" />
                 Discography
+              </button>
+              <button 
+                onClick={() => { setScreen('merch'); setSidebarOpen(false); }}
+                className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium transition-colors ${screen === 'merch' ? 'bg-purple-600/20 text-purple-200 border border-purple-500/30' : 'bg-transparent text-white/40 hover:bg-white/5 hover:text-white'}`}
+              >
+                <ShoppingBag className="w-4 h-4" />
+                Merch Store
               </button>
               <button 
                 onClick={() => { setScreen('skills'); setSidebarOpen(false); }}
@@ -1029,6 +1219,7 @@ export default function App() {
              {screen === 'dashboard' && <DashboardView gameState={gameState} setGameState={setGameState} dateDayStr={dateDayStr} dayName={dayName} monthYearStr={monthYearStr} handleNextDay={handleNextDay} isLoadingNextDay={isLoadingNextDay} currentAgeYears={currentAgeYears} isAutoAdvancing={isAutoAdvancing} setIsAutoAdvancing={setIsAutoAdvancing} />}
              {screen === 'studio' && <StudioView gameState={gameState!} setGameState={setGameState} currentDate={currentDate} />}
              {screen === 'discography' && <DiscographyView gameState={gameState!} />}
+             {screen === 'merch' && <MerchStoreView gameState={gameState!} setGameState={setGameState} />}
              {screen === 'skills' && <SkillsView gameState={gameState!} setGameState={setGameState} />}
              {screen === 'regions' && <RegionPopularityView gameState={gameState!} />}
              {screen === 'gigs' && <GigsView gameState={gameState!} setGameState={setGameState} currentDate={currentDate} />}

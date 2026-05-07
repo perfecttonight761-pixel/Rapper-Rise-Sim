@@ -1,0 +1,350 @@
+import React, { useState } from 'react';
+import { Upload, Image as ImageIcon, Music, Check, DollarSign, Calendar } from 'lucide-react';
+import { GameState, Genre, Song, Album, ReleaseStatus, DailyReportData } from '../types';
+
+interface StudioViewProps {
+  gameState: GameState;
+  setGameState: React.Dispatch<React.SetStateAction<GameState | null>>;
+  currentDate: Date; // standard JS date based on game time
+}
+
+export function StudioView({ gameState, setGameState, currentDate }: StudioViewProps) {
+  const [activeTab, setActiveTab] = useState<'Song' | 'Album'>('Song');
+
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-y-auto">
+      <div className="flex border-b border-white/10 p-4 shrink-0">
+        <button
+          onClick={() => setActiveTab('Song')}
+          className={`px-6 py-2 rounded-lg text-sm font-bold tracking-widest uppercase transition-all ${activeTab === 'Song' ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30' : 'text-white/40 hover:text-white'}`}
+        >
+          Create Song
+        </button>
+        <button
+          onClick={() => setActiveTab('Album')}
+          className={`px-6 py-2 rounded-lg text-sm font-bold tracking-widest uppercase transition-all ml-4 ${activeTab === 'Album' ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30' : 'text-white/40 hover:text-white'}`}
+        >
+          Create Album
+        </button>
+      </div>
+
+      <div className="p-6 md:p-8 flex-1">
+        {activeTab === 'Song' && <CreateSongForm gameState={gameState} setGameState={setGameState} currentDate={currentDate} />}
+        {activeTab === 'Album' && <CreateAlbumForm gameState={gameState} setGameState={setGameState} currentDate={currentDate} />}
+      </div>
+    </div>
+  );
+}
+
+function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProps) {
+  const [cover, setCover] = useState('');
+  const [title, setTitle] = useState('');
+  const [collab, setCollab] = useState('');
+  const [collabCost, setCollabCost] = useState<number>(0);
+  const [genre, setGenre] = useState<Genre>('Pop');
+  
+  // Costs: 0=Self, 1=Low, 2=Medium, 3=High
+  const [songwriterLvl, setSongwriterLvl] = useState(0);
+  const [producerLvl, setProducerLvl] = useState(0);
+  const [composerLvl, setComposerLvl] = useState(0);
+
+  const calculateTotalCost = () => {
+    const swCost = songwriterLvl === 0 ? 0 : (songwriterLvl * 500);
+    const pCost = producerLvl === 0 ? 0 : (producerLvl * 1000);
+    const cCost = composerLvl === 0 ? 0 : (composerLvl * 600);
+    return swCost + pCost + cCost + (collabCost || 0);
+  };
+
+  const getQualityValue = (lvl: number, skillType: 'songwriting' | 'production' | 'vocals') => {
+    if (lvl > 0) return lvl;
+    // Map skill 1-100 to tier 1-4 for quality
+    const skillVal = gameState.skills[skillType];
+    return Math.max(1, Math.min(4, Math.ceil(skillVal / 25)));
+  };
+
+  const calculateQuality = () => {
+    const swQ = getQualityValue(songwriterLvl, 'songwriting');
+    const pQ = getQualityValue(producerLvl, 'production');
+    const cQ = getQualityValue(composerLvl, 'vocals'); // vocals for composer here
+    return (swQ + pQ + cQ) / 3;
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) {
+        alert('Image too large. Max 1MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => setCover(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCreate = (status: ReleaseStatus, delayDays: number = 0) => {
+    if (!title.trim()) return alert("Enter a title");
+    
+    const cost = calculateTotalCost();
+    if (gameState.stats.money < cost) {
+      return alert("Not enough money!");
+    }
+
+    const releaseDateObj = new Date(currentDate);
+    releaseDateObj.setDate(releaseDateObj.getDate() + delayDays);
+
+    let finalTitle = title;
+    if (collab.trim() && !title.toLowerCase().includes('feat')) {
+        finalTitle = `${title} (feat. ${collab.trim()})`;
+    }
+
+    const newSong: Song = {
+      id: 'song_' + Date.now(),
+      title: finalTitle,
+      coverImage: cover,
+      type: 'Single',
+      status,
+      releaseDate: status === 'Vaulted' ? null : releaseDateObj.toISOString(),
+      streams: { spotify: 0, appleMusic: 0, amazonMusic: 0, youtubeMusic: 0, total: 0 },
+      sales: { physical: 0, digital: 0, total: 0 },
+      radioPlays: 0,
+      genre,
+      collaborator: collab.trim(),
+      featuredArtistCost: collabCost || 0,
+      qualityModifier: calculateQuality()
+    };
+
+    setGameState(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        stats: {
+          ...prev.stats,
+          money: prev.stats.money - cost
+        },
+        releases: [...prev.releases, newSong]
+      };
+    });
+
+    alert(status === 'Published' ? "Song Released!" : (status === 'Scheduled' ? "Song Scheduled!" : "Song Vaulted!"));
+    setTitle('');
+    setCollab('');
+    setCollabCost(0);
+    setCover('');
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="flex gap-6 items-start">
+        <label className="w-32 h-32 shrink-0 rounded-2xl overflow-hidden border-2 border-dashed border-white/20 bg-black/40 flex items-center justify-center cursor-pointer hover:border-purple-400 hover:bg-white/10 transition-colors relative group">
+          {cover ? (
+            <img src={cover} alt="Cover" className="w-full h-full object-cover" />
+          ) : (
+            <div className="text-center p-2 text-white/40 group-hover:text-purple-400 transition-colors">
+              <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <span className="text-[10px] uppercase tracking-widest font-bold">Cover</span>
+            </div>
+          )}
+          <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+        </label>
+        <div className="flex-1 space-y-4">
+          <div>
+            <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Song Title</label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 focus:bg-white/5 transition-all font-mono" placeholder="Hit Song Title" />
+          </div>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Collaborator Name (Optional)</label>
+              <input type="text" value={collab} onChange={e => setCollab(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 focus:bg-white/5 transition-all font-mono" placeholder="e.g. Snoop Dogg" />
+            </div>
+            <div className="w-1/3">
+              <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Collab Cost ($)</label>
+              <input type="number" min="0" value={collabCost || ''} onChange={e => setCollabCost(Math.max(0, parseInt(e.target.value) || 0))} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 focus:bg-white/5 transition-all font-mono" placeholder="0" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 mt-4 gap-4">
+          <div>
+            <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Genre</label>
+            <select value={genre} onChange={e => setGenre(e.target.value as Genre)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all appearance-none font-mono">
+              <option className="bg-zinc-900" value="Pop">Pop</option>
+              <option className="bg-zinc-900" value="Kpop">Kpop</option>
+              <option className="bg-zinc-900" value="Rap">Rap</option>
+              <option className="bg-zinc-900" value="Country">Country</option>
+            </select>
+          </div>
+      </div>
+      
+      <div className="space-y-4 py-4 border-t border-white/10 mt-6">
+        <h3 className="text-sm font-bold tracking-widest uppercase text-purple-400">Production Team</h3>
+        
+        <div className="flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10">
+           <span className="font-mono text-sm">Songwriter <span className="text-white/40 text-xs">- Affects lyrical score</span></span>
+           <select value={songwriterLvl} onChange={e => setSongwriterLvl(Number(e.target.value))} className="bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-xs font-mono">
+             <option value={0}>Self ($0)</option>
+             <option value={1}>Amateur ($500)</option>
+             <option value={2}>Pro ($1,000)</option>
+             <option value={3}>Hit-maker ($2,500)</option>
+           </select>
+        </div>
+        <div className="flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10">
+           <span className="font-mono text-sm">Producer <span className="text-white/40 text-xs">- Affects stream reach</span></span>
+           <select value={producerLvl} onChange={e => setProducerLvl(Number(e.target.value))} className="bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-xs font-mono">
+             <option value={0}>Self ($0)</option>
+             <option value={1}>Bedroom Prod ($1,000)</option>
+             <option value={2}>Studio Staff ($2,500)</option>
+             <option value={3}>Platinum Prod ($10,000)</option>
+           </select>
+        </div>
+        <div className="flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10">
+           <span className="font-mono text-sm">Composer <span className="text-white/40 text-xs">- Affects musicality</span></span>
+           <select value={composerLvl} onChange={e => setComposerLvl(Number(e.target.value))} className="bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-xs font-mono">
+             <option value={0}>Self ($0)</option>
+             <option value={1}>Amateur ($600)</option>
+             <option value={2}>Advanced ($1,500)</option>
+             <option value={3}>Orchestral ($5,000)</option>
+           </select>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center bg-black/40 border border-white/10 p-4 rounded-xl mt-4">
+        <span className="text-sm font-bold tracking-widest uppercase text-white/60">Total Cost</span>
+        <span className={`text-2xl font-mono ${gameState.stats.money >= calculateTotalCost() ? 'text-green-400' : 'text-red-400'}`}>${calculateTotalCost().toLocaleString()}</span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+         <button onClick={() => handleCreate('Vaulted')} className="bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors">
+           Save to Vault
+         </button>
+         <button onClick={() => handleCreate('Scheduled', 7)} className="bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors flex items-center justify-center gap-2">
+           <Calendar className="w-4 h-4" /> Schedule (7 Days)
+         </button>
+         <button onClick={() => handleCreate('Published')} className="bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.4)]">
+           <Check className="w-4 h-4" /> Release Now
+         </button>
+      </div>
+
+    </div>
+  )
+}
+
+function CreateAlbumForm({ gameState, setGameState, currentDate }: StudioViewProps) {
+  const [cover, setCover] = useState('');
+  const [title, setTitle] = useState('');
+  const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
+
+  // Get eligible tracks (we only use Singles that are already Vaulted or Published, but usually Vaulted are used for albums before release, or maybe they can bundle existing published ones. Prompt says 'tracklist vault/released').
+  const eligibleTracks = gameState.releases.filter(r => r.type === 'Single' && (r.status === 'Vaulted' || r.status === 'Published'));
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) return;
+      const reader = new FileReader();
+      reader.onloadend = () => setCover(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const toggleTrack = (id: string) => {
+    if (selectedTracks.includes(id)) {
+      setSelectedTracks(selectedTracks.filter(t => t !== id));
+    } else {
+      setSelectedTracks([...selectedTracks, id]);
+    }
+  };
+
+  const handleCreate = (status: ReleaseStatus, delayDays: number = 0) => {
+    if (!title.trim()) return alert("Enter title");
+    if (selectedTracks.length === 0) return alert("Select at least 1 track");
+
+    const releaseDateObj = new Date(currentDate);
+    releaseDateObj.setDate(releaseDateObj.getDate() + delayDays);
+
+    const newAlbum: Album = {
+      id: 'album_' + Date.now(),
+      title,
+      coverImage: cover,
+      type: 'Album',
+      status,
+      releaseDate: status === 'Vaulted' ? null : releaseDateObj.toISOString(),
+      streams: { spotify: 0, appleMusic: 0, amazonMusic: 0, youtubeMusic: 0, total: 0 },
+      sales: { physical: 0, digital: 0, total: 0 },
+      radioPlays: 0,
+      trackIds: selectedTracks
+    };
+
+    setGameState(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        releases: [...prev.releases, newAlbum]
+      }
+    });
+
+    alert(status === 'Published' ? "Album Released!" : (status === 'Scheduled' ? "Album Scheduled!" : "Album Vaulted!"));
+    setTitle('');
+    setCover('');
+    setSelectedTracks([]);
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+       <div className="flex gap-6 items-start mb-6">
+        <label className="w-32 h-32 shrink-0 rounded-2xl overflow-hidden border-2 border-dashed border-white/20 bg-black/40 flex items-center justify-center cursor-pointer hover:border-purple-400 hover:bg-white/10 transition-colors relative group">
+          {cover ? (
+            <img src={cover} alt="Cover" className="w-full h-full object-cover" />
+          ) : (
+            <div className="text-center p-2 text-white/40 group-hover:text-purple-400 transition-colors">
+              <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <span className="text-[10px] uppercase tracking-widest font-bold">Album Art</span>
+            </div>
+          )}
+          <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+        </label>
+        <div className="flex-1 space-y-4 mt-4">
+          <div>
+            <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Album Title</label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 focus:bg-white/5 transition-all font-mono" placeholder="Album Name" />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-bold tracking-widest uppercase text-purple-400">Select Tracklist</h3>
+        {eligibleTracks.length === 0 ? (
+          <div className="p-8 text-center border border-white/10 rounded-xl bg-white/5 text-white/40 text-sm font-mono">
+            No eligible singles available. Create a Song first!
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-2">
+            {eligibleTracks.map(track => (
+              <label key={track.id} className="flex items-center gap-4 bg-white/5 border border-white/10 p-3 rounded-xl cursor-pointer hover:bg-white/10 transition-colors">
+                <input type="checkbox" className="w-4 h-4 bg-black border border-white/20 rounded accent-purple-500" checked={selectedTracks.includes(track.id)} onChange={() => toggleTrack(track.id)} />
+                {track.coverImage ? <img src={track.coverImage} alt="cover" className="w-10 h-10 rounded-md object-cover" /> : <div className="w-10 h-10 rounded-md bg-white/10 flex items-center justify-center"><Music className="w-4 h-4 text-white/40" /></div>}
+                <div className="flex flex-col">
+                   <span className="font-bold text-sm tracking-wide">{track.title}</span>
+                   <span className="text-xs text-white/40 uppercase tracking-widest">{track.status}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-white/10">
+         <button onClick={() => handleCreate('Vaulted')} className="bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors">
+           Save to Vault
+         </button>
+         <button onClick={() => handleCreate('Scheduled', 14)} className="bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors flex items-center justify-center gap-2">
+           <Calendar className="w-4 h-4" /> Schedule (14 Days)
+         </button>
+         <button onClick={() => handleCreate('Published')} className="bg-purple-600 hover:bg-purple-500 text-white p-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.4)]">
+           <Check className="w-4 h-4" /> Release Now
+         </button>
+      </div>
+    </div>
+  )
+}

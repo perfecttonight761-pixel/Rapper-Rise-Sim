@@ -36,6 +36,33 @@ export default function App() {
   const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
 
   useEffect(() => {
+    // Attempt to load from localStorage on mount
+    try {
+      const saved = localStorage.getItem('musician_simulator_save');
+      if (saved) {
+        const json = JSON.parse(saved);
+        if (json && json.version) {
+          setGameState(json);
+          setScreen('dashboard');
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load auto-save", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Auto-save whenever gameState changes
+    if (gameState) {
+      try {
+        localStorage.setItem('musician_simulator_save', JSON.stringify(gameState));
+      } catch (e) {
+        console.error("Failed to auto-save", e);
+      }
+    }
+  }, [gameState]);
+
+  useEffect(() => {
     // Stop auto advancing if we navigate away from dashboard
     if (screen !== 'dashboard') {
       setIsAutoAdvancing(false);

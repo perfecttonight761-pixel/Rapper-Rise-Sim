@@ -64,6 +64,10 @@ export function DashboardView({
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && setGameState) {
+      if (file.size > 2 * 1024 * 1024) { // Limit to 2MB
+        alert("Image too large. Please use an image smaller than 2MB.");
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setGameState(prev => {

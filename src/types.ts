@@ -92,6 +92,14 @@ export interface BaseRelease {
     total: number;
   };
   radioPlays: number;
+  chartHistory?: {
+    [chartName: string]: {
+      debutDate: string;
+      peakPos: number;
+      peakDate: string;
+      weeksOnChart: number;
+    }
+  };
 }
 
 export interface Song extends BaseRelease {

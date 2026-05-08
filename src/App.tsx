@@ -3,6 +3,7 @@ import { Play, Download, Search, Upload, User, Image as ImageIcon, MapPin, Music
 import { GameState, GameScreen, StartCapital, DailyReportData, Song, Album, Gig } from './types';
 import { LEVEL_REQUIREMENTS, NPC_ARTISTS } from './constants';
 import { generateNominees, pickWinner } from './grammyUtils';
+import { computeCharts } from './chartUtils';
 import { DashboardView } from './components/DashboardView';
 import { StudioView } from './components/StudioView';
 import { DiscographyView } from './components/DiscographyView';
@@ -794,6 +795,55 @@ export default function App() {
                  mediaUrl: 'https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=800&auto=format&fit=crop'
               }, ...newCustomTweets];
            }
+        }
+
+        if (reachedNextWeek) {
+          const intermediateGameState = { 
+              ...prev, 
+              releases: updatedReleasesWithSales, 
+              time: { startDate: prev.time.startDate, daysPassed: nextDaysPassed },
+              popularity: {
+                 america: newAmériquePop,
+                 latinAmerica: newLatinPop,
+                 europe: newEuropePop
+              }
+          };
+          const { charts } = computeCharts(intermediateGameState);
+          
+          updatedReleasesWithSales = updatedReleasesWithSales.map(r => {
+            let newChartHistory = r.chartHistory ? JSON.parse(JSON.stringify(r.chartHistory)) : {};
+            let isModified = false;
+            
+            Object.keys(charts).forEach(chartName => {
+              const entryInChart = charts[chartName as keyof typeof charts].find((c: any) => c.id === r.id);
+              if (entryInChart) {
+                  isModified = true;
+                  const displayChartName = chartName === 'Hot100' ? 'Billboard Hot 100™' :
+                                           chartName === 'Global200Single' ? 'Billboard Global 200 Songs' :
+                                           chartName === 'Global200Album' ? 'Billboard Global 200 Albums' :
+                                           chartName === 'RegionAmerica' ? 'US Top 100' :
+                                           chartName === 'RegionLatinAmerica' ? 'Latin Top 100' :
+                                           chartName === 'RegionEurope' ? 'Europe Top 100' : chartName;
+                                           
+                  if (!newChartHistory[displayChartName]) {
+                     newChartHistory[displayChartName] = {
+                       debutDate: currentDateObj.toISOString(),
+                       peakPos: entryInChart.peakPos || entryInChart.peak || (entryInChart.isNew ? entryInChart.lastPos : 1),
+                       peakDate: currentDateObj.toISOString(),
+                       weeksOnChart: entryInChart.weeksOnChart || 1
+                     };
+                  } else {
+                     newChartHistory[displayChartName].weeksOnChart = (newChartHistory[displayChartName].weeksOnChart || 0) + 1;
+                     const currentPeak = entryInChart.peakPos || entryInChart.peak || entryInChart.lastPos;
+                     if (currentPeak < newChartHistory[displayChartName].peakPos) {
+                         newChartHistory[displayChartName].peakPos = currentPeak;
+                         newChartHistory[displayChartName].peakDate = currentDateObj.toISOString();
+                     }
+                  }
+              }
+            });
+            return isModified ? { ...r, chartHistory: newChartHistory } : r;
+          });
         }
 
         return {

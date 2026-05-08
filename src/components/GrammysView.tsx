@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GameState, GrammysState, Release } from '../types';
 import { Award, Music, Disc, User, CheckCircle2, AlertCircle, Sparkles, ChevronRight, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { ARTIST_IMAGES } from '../artistImages';
 
 interface GrammysViewProps {
   gameState: GameState;
@@ -273,7 +274,8 @@ export function GrammysView({ gameState, setGameState }: GrammysViewProps) {
                        {result.nominees.map((nominee, nIdx) => {
                           const isWinner = grammys.stage === 'Results' && result.winnerId === nominee.id;
                           const release = gameState.releases.find(r => r.id === nominee.id);
-                          const coverImage = nominee.type === 'Artist' ? (nominee.isPlayer ? gameState.artist?.image : `https://picsum.photos/seed/${encodeURIComponent(nominee.artist)}/100/100`) : (release?.coverImage || `https://picsum.photos/seed/${encodeURIComponent(nominee.artist + (nominee.title||''))}/100/100`);
+                          const fallbackImage = ARTIST_IMAGES[nominee.artist as string] || `https://i.pravatar.cc/200?u=${encodeURIComponent(nominee.artist)}`;
+                          const coverImage = nominee.type === 'Artist' ? (nominee.isPlayer ? gameState.artist?.image : fallbackImage) : (release?.coverImage || nominee.coverImage || fallbackImage);
                           
                           return (
                              <div 

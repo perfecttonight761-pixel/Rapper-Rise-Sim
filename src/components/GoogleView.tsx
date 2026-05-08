@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { GameState } from '../types';
 import { Search, ChevronDown, Check, X, AlignJustify } from 'lucide-react';
 import { generateNPCSongs, generateNPCAlbums } from '../constants';
+import { ARTIST_IMAGES } from '../artistImages';
 import { RadioChart } from './RadioChart';
 
 interface GoogleViewProps {
@@ -141,26 +142,27 @@ function SpotifyCharts({ gameState, onBack, onSelect }: { gameState: GameState, 
     
     // NPC streams scale gracefully and realistically
     const daySeed = Math.floor(gameState.time.daysPassed / 10);
-    const npcSongs = generateNPCSongs(1, daySeed).map((s, i) => {
+    const pName = gameState.artist?.name || '';
+    const npcSongs = generateNPCSongs(1, daySeed, pName).map((s, i) => {
        const fluctuation = 1 + (Math.sin(gameState.time.daysPassed + i) * 0.1);
        const isHit = i % 10 === 0 ? 3.5 : (i % 3 === 0 ? 0.5 : 1);
        const daily = Math.floor(s.points * 6 * fluctuation * isHit); // Max around ~8M - 12M daily Spotify streams for big hits
        return { 
           ...s, 
-          coverImage: `https://picsum.photos/seed/${encodeURIComponent((s.id || s.title) + s.artist)}/200/200`,
+          coverImage: s.coverImage || ARTIST_IMAGES[s.artist as string] || `https://i.pravatar.cc/200?u=${encodeURIComponent(s.artist)}`,
           totalStreams: daily * (50 + gameState.time.daysPassed % 300), 
           weeklyStreams: daily * 7, 
           dailyStreams: daily 
        };
     });
     
-    const npcAlbums = generateNPCAlbums(1, daySeed).map((s, i) => {
+    const npcAlbums = generateNPCAlbums(1, daySeed, pName).map((s, i) => {
        const fluctuation = 1 + (Math.cos(gameState.time.daysPassed + i) * 0.1);
        const isHit = i % 8 === 0 ? 3.0 : (i % 3 === 0 ? 0.5 : 1);
        const daily = Math.floor(s.points * 5 * fluctuation * isHit);
        return { 
           ...s, 
-          coverImage: `https://picsum.photos/seed/${encodeURIComponent((s.id || s.title) + s.artist) + 'album'}/200/200`,
+          coverImage: s.coverImage || ARTIST_IMAGES[s.artist as string] || `https://i.pravatar.cc/200?u=${encodeURIComponent(s.artist)}`,
           totalStreams: daily * (50 + gameState.time.daysPassed % 200), 
           weeklyStreams: daily * 7, 
           dailyStreams: daily 

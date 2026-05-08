@@ -14,8 +14,10 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
   const playerAlbums = playerReleases.filter(r => r.type === 'Album');
 
   // Generate NPC data from "previous year" (using a fixed seed for that year)
-  const npcSingles = generateNPCSongs(1.1, previousYear);
-  const npcAlbums = generateNPCAlbums(1.1, previousYear);
+  const pName = gameState.artist?.name || '';
+  const npcSingles = generateNPCSongs(1.1, previousYear, pName);
+  const npcAlbums = generateNPCAlbums(1.1, previousYear, pName);
+  const availableNpcs = NPC_ARTISTS.filter(n => n.name.toLowerCase() !== pName.toLowerCase());
 
   const categories: AwardCategory[] = [
     'Artist of the Year',
@@ -50,7 +52,7 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
       case 'Artist of the Year': {
         const pSub = getSubmittedWork('Artist of the Year', 'Artist');
         if (pSub) pool.push(pSub);
-        NPC_ARTISTS.slice(0, 15).forEach(npc => {
+        availableNpcs.slice(0, 15).forEach(npc => {
            pool.push({ id: npc.name, artist: npc.name, isPlayer: false, type: 'Artist' });
         });
         break;
@@ -59,13 +61,13 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
       case 'Record of the Year': {
         const pSub = getSubmittedWork(category, 'Single');
         if (pSub) pool.push(pSub);
-        npcSingles.forEach(s => pool.push({ id: s.id, title: s.title, artist: s.artist, isPlayer: false, type: 'Single' }));
+        npcSingles.forEach(s => pool.push({ id: s.id, title: s.title, artist: s.artist, isPlayer: false, type: 'Single', coverImage: s.coverImage }));
         break;
       }
       case 'Album of the Year': {
         const pSub = getSubmittedWork('Album of the Year', 'Album');
         if (pSub) pool.push(pSub);
-        npcAlbums.forEach(a => pool.push({ id: a.id, title: a.title, artist: a.artist, isPlayer: false, type: 'Album' }));
+        npcAlbums.forEach(a => pool.push({ id: a.id, title: a.title, artist: a.artist, isPlayer: false, type: 'Album', coverImage: a.coverImage }));
         break;
       }
       case 'Best Pop Duo/Group Performance': {
@@ -74,7 +76,7 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
         npcSingles.filter(s => {
            // Assume ~30% of NPC singles are collabs to give some competition
            return (s.id.charCodeAt(0) % 3) === 0;
-        }).forEach(s => pool.push({ id: s.id, title: s.title, artist: s.artist, isPlayer: false, type: 'Single' }));
+        }).forEach(s => pool.push({ id: s.id, title: s.title, artist: s.artist, isPlayer: false, type: 'Single', coverImage: s.coverImage }));
         break;
       }
       case 'Best Pop Album': {
@@ -83,7 +85,7 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
         npcAlbums.filter(a => {
            const npc = NPC_ARTISTS.find(n => n.name === a.artist);
            return npc?.type === 'Pop' || npc?.type === 'Kpop';
-        }).forEach(a => pool.push({ id: a.id, title: a.title, artist: a.artist, isPlayer: false, type: 'Album' }));
+        }).forEach(a => pool.push({ id: a.id, title: a.title, artist: a.artist, isPlayer: false, type: 'Album', coverImage: a.coverImage }));
         break;
       }
       case 'Best Rap Album': {
@@ -92,7 +94,7 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
         npcAlbums.filter(a => {
            const npc = NPC_ARTISTS.find(n => n.name === a.artist);
            return npc?.type === 'Rap';
-        }).forEach(a => pool.push({ id: a.id, title: a.title, artist: a.artist, isPlayer: false, type: 'Album' }));
+        }).forEach(a => pool.push({ id: a.id, title: a.title, artist: a.artist, isPlayer: false, type: 'Album', coverImage: a.coverImage }));
         break;
       }
       case 'Best Country Album': {
@@ -101,7 +103,7 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
         npcAlbums.filter(a => {
            const npc = NPC_ARTISTS.find(n => n.name === a.artist);
            return npc?.type === 'Country';
-        }).forEach(a => pool.push({ id: a.id, title: a.title, artist: a.artist, isPlayer: false, type: 'Album' }));
+        }).forEach(a => pool.push({ id: a.id, title: a.title, artist: a.artist, isPlayer: false, type: 'Album', coverImage: a.coverImage }));
         break;
       }
     }

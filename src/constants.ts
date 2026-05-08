@@ -21,120 +21,109 @@ export const LEVEL_REQUIREMENTS: Record<number, LevelRequirement> = {
   10: { gigs: 250, performance: 100, vocals: 100, songwriting: 100, production: 100, streams: 500000000, sales: 5000000 }
 };
 
+import { ARTIST_DISCOGRAPHY } from './artistDiscography';
+
 export const NPC_ARTISTS = [
-  // Pop/Mainstream
-  { name: 'Tyler Swift', basePoints: 450000, type: 'Pop' },
-  { name: 'The Weekdy', basePoints: 420000, type: 'Pop' },
-  { name: 'Ariana Venti', basePoints: 350000, type: 'Pop' },
-  { name: 'Post Malon', basePoints: 280000, type: 'Pop' },
-  { name: 'Ed Sheran', basePoints: 260000, type: 'Pop' },
-  { name: 'Dua Lip', basePoints: 240000, type: 'Pop' },
-  { name: 'Bili Elsh', basePoints: 200000, type: 'Pop' },
-  { name: 'Justin Bebe', basePoints: 195000, type: 'Pop' },
-  { name: 'Harry Stylus', basePoints: 190000, type: 'Pop' },
-  { name: 'Katy Bear', basePoints: 185000, type: 'Pop' },
-  { name: 'Bruno Marsbar', basePoints: 180000, type: 'Pop' },
-  { name: 'Adeley', basePoints: 210000, type: 'Pop' },
-  { name: 'Rihanna', basePoints: 205000, type: 'R&B' },
-  { name: 'Maroon 6', basePoints: 150000, type: 'Pop' },
-  { name: 'Shawn Mends', basePoints: 145000, type: 'Pop' },
-  { name: 'Charlie Put', basePoints: 140000, type: 'Pop' },
-  { name: 'Miley Syrups', basePoints: 160000, type: 'Pop' },
-  { name: 'Selena Gomas', basePoints: 155000, type: 'Pop' },
-  { name: 'Demi Lovat', basePoints: 120000, type: 'Pop' },
-  { name: 'Oliva Rodrigo', basePoints: 220000, type: 'Pop' },
-  { name: 'Doja Cat', basePoints: 215000, type: 'Rap' },
-  { name: 'Sabrina Carpent', basePoints: 180000, type: 'Pop' },
-  { name: 'Tate McRae', basePoints: 170000, type: 'Pop' },
-  { name: 'Lizzo', basePoints: 140000, type: 'Pop' },
-  { name: 'Lil Nas X', basePoints: 150000, type: 'Pop' },
-  // Rap/Hip-Hop
-  { name: 'Drank', basePoints: 400000, type: 'Rap' },
-  { name: 'Kendrick Llama', basePoints: 300000, type: 'Rap' },
-  { name: 'Travis Scat', basePoints: 190000, type: 'Rap' },
-  { name: 'J. Cole', basePoints: 185000, type: 'Rap' },
-  { name: 'Eminm', basePoints: 180000, type: 'Rap' },
-  { name: 'Kanye West', basePoints: 195000, type: 'Rap' },
-  { name: 'Future', basePoints: 175000, type: 'Rap' },
-  { name: 'Lil Baby', basePoints: 160000, type: 'Rap' },
-  { name: 'Lil Uzi Vert', basePoints: 150000, type: 'Rap' },
-  { name: 'Playboi Carti', basePoints: 145000, type: 'Rap' },
-  { name: '21 Savage', basePoints: 165000, type: 'Rap' },
-  { name: 'Gunna', basePoints: 140000, type: 'Rap' },
-  { name: 'Polo G', basePoints: 130000, type: 'Rap' },
-  { name: 'JID', basePoints: 100000, type: 'Rap' },
-  { name: 'Young Thug', basePoints: 110000, type: 'Rap' },
-  { name: 'A$AP Rocky', basePoints: 120000, type: 'Rap' },
-  { name: 'Mac Miller', basePoints: 105000, type: 'Rap' },
-  { name: 'Megan Thee Stallion', basePoints: 135000, type: 'Rap' },
-  { name: 'Cardi B', basePoints: 140000, type: 'Rap' },
-  { name: 'Nicki Minaj', basePoints: 155000, type: 'Rap' },
-  // Latin
-  { name: 'Bad Bunny', basePoints: 380000, type: 'Latin' },
-  { name: 'J Balvin', basePoints: 210000, type: 'Latin' },
-  { name: 'Carol G', basePoints: 250000, type: 'Latin' },
-  { name: 'Rosalia', basePoints: 190000, type: 'Latin' },
-  { name: 'Maluma', basePoints: 160000, type: 'Latin' },
-  { name: 'Rauw Alejandro', basePoints: 170000, type: 'Latin' },
-  { name: 'Ozuna', basePoints: 150000, type: 'Latin' },
-  { name: 'Shakira', basePoints: 195000, type: 'Latin' },
-  { name: 'Peso Pluma', basePoints: 220000, type: 'Latin' },
-  { name: 'Bizarrap', basePoints: 180000, type: 'Latin' },
-  // K-pop
-  { name: 'BTS (Band)', basePoints: 330000, type: 'Kpop' },
-  { name: 'Blackpink', basePoints: 290000, type: 'Kpop' },
-  { name: 'Stray Kids', basePoints: 150000, type: 'Kpop' },
-  { name: 'Twice', basePoints: 140000, type: 'Kpop' },
-  { name: 'Tomorrow X Together', basePoints: 120000, type: 'Kpop' },
-  { name: 'Seventeen', basePoints: 160000, type: 'Kpop' },
-  { name: 'NewJeans', basePoints: 180000, type: 'Kpop' },
-  { name: 'Aespa', basePoints: 130000, type: 'Kpop' },
-  { name: 'Fifty Fifty', basePoints: 90000, type: 'Kpop' },
-  { name: 'IVE', basePoints: 100000, type: 'Kpop' },
-  // Country
-  { name: 'Morgan Walln', basePoints: 220000, type: 'Country' },
-  { name: 'Luka Comb', basePoints: 180000, type: 'Country' },
-  { name: 'Zach Bryan', basePoints: 190000, type: 'Country' },
-  { name: 'Chris Stapleton', basePoints: 150000, type: 'Country' },
-  { name: 'Carrie Underwoods', basePoints: 100000, type: 'Country' },
-  { name: 'Kane Brown', basePoints: 110000, type: 'Country' },
-  { name: 'Blake Shelton', basePoints: 95000, type: 'Country' },
-  { name: 'Luke Bryan', basePoints: 90000, type: 'Country' },
-  { name: 'Thomas Rhett', basePoints: 85000, type: 'Country' },
-  { name: 'Bailey Zimmerman', basePoints: 80000, type: 'Country' },
-  // R&B
-  { name: 'SZA', basePoints: 210000, type: 'R&B' },
-  { name: 'Frank Ocean', basePoints: 170000, type: 'R&B' },
-  { name: 'Brent Faiyaz', basePoints: 120000, type: 'R&B' },
-  { name: 'Summer Walker', basePoints: 110000, type: 'R&B' },
-  { name: 'H.E.R.', basePoints: 100000, type: 'R&B' },
-  { name: 'Kehlani', basePoints: 90000, type: 'R&B' },
-  { name: 'Giveon', basePoints: 85000, type: 'R&B' },
-  { name: 'Bryson Tiller', basePoints: 80000, type: 'R&B' },
-  { name: 'Jhene Aiko', basePoints: 95000, type: 'R&B' },
-  { name: 'Alicia Keys', basePoints: 75000, type: 'R&B' },
-  // Rock/Alternative
-  { name: 'Coldplay', basePoints: 200000, type: 'Rock' },
-  { name: 'Imagine Dragons', basePoints: 180000, type: 'Rock' },
-  { name: 'Arctic Monkeys', basePoints: 160000, type: 'Rock' },
-  { name: 'The Killers', basePoints: 120000, type: 'Rock' },
-  { name: 'Red Hot Chili Peppers', basePoints: 130000, type: 'Rock' },
-  { name: 'Linkin Park', basePoints: 150000, type: 'Rock' },
-  { name: 'Green Day', basePoints: 110000, type: 'Rock' },
-  { name: 'Fall Out Boy', basePoints: 90000, type: 'Rock' },
-  { name: 'Paramore', basePoints: 85000, type: 'Rock' },
-  { name: 'Twenty One Pilots', basePoints: 100000, type: 'Rock' },
-  // EDM/Dance
-  { name: 'Calvin Harris', basePoints: 160000, type: 'Dance' },
-  { name: 'David Guetta', basePoints: 150000, type: 'Dance' },
-  { name: 'Martin Garrix', basePoints: 120000, type: 'Dance' },
-  { name: 'Tiësto', basePoints: 110000, type: 'Dance' },
-  { name: 'The Chainsmokers', basePoints: 130000, type: 'Dance' },
-  { name: 'Zedd', basePoints: 100000, type: 'Dance' },
-  { name: 'Kygo', basePoints: 90000, type: 'Dance' },
-  { name: 'DJ Snake', basePoints: 115000, type: 'Dance' },
-  { name: 'Marshmello', basePoints: 125000, type: 'Dance' },
-  { name: 'Alan Walker', basePoints: 105000, type: 'Dance' }
+  { name: 'Taylor Swift', basePoints: 450000, type: 'Pop' },
+  { name: 'Ariana Grande', basePoints: 420000, type: 'Pop' },
+  { name: 'Billie Eilish', basePoints: 390000, type: 'Pop' },
+  { name: 'Olivia Rodrigo', basePoints: 370000, type: 'Pop' },
+  { name: 'The Weeknd', basePoints: 440000, type: 'R&B' },
+  { name: 'Drake', basePoints: 430000, type: 'Rap' },
+  { name: 'Ed Sheeran', basePoints: 350000, type: 'Pop' },
+  { name: 'Bruno Mars', basePoints: 360000, type: 'Pop' },
+  { name: 'Justin Bieber', basePoints: 340000, type: 'Pop' },
+  { name: 'Dua Lipa', basePoints: 330000, type: 'Pop' },
+  { name: 'Lady Gaga', basePoints: 310000, type: 'Pop' },
+  { name: 'Beyoncé', basePoints: 380000, type: 'R&B' },
+  { name: 'Rihanna', basePoints: 390000, type: 'R&B' },
+  { name: 'Katy Perry', basePoints: 260000, type: 'Pop' },
+  { name: 'Selena Gomez', basePoints: 280000, type: 'Pop' },
+  { name: 'Shawn Mendes', basePoints: 250000, type: 'Pop' },
+  { name: 'Post Malone', basePoints: 340000, type: 'Rap' },
+  { name: 'Doja Cat', basePoints: 310000, type: 'Rap' },
+  { name: 'SZA', basePoints: 340000, type: 'R&B' },
+  { name: 'Lana Del Rey', basePoints: 320000, type: 'Pop' },
+  { name: 'Adele', basePoints: 360000, type: 'Pop' },
+  { name: 'Sam Smith', basePoints: 250000, type: 'Pop' },
+  { name: 'Harry Styles', basePoints: 350000, type: 'Pop' },
+  { name: 'Zayn Malik', basePoints: 190000, type: 'Pop' },
+  { name: 'Niall Horan', basePoints: 180000, type: 'Pop' },
+  { name: 'Louis Tomlinson', basePoints: 170000, type: 'Pop' },
+  { name: 'Liam Payne', basePoints: 160000, type: 'Pop' },
+  { name: 'Charlie Puth', basePoints: 220000, type: 'Pop' },
+  { name: 'Camila Cabello', basePoints: 210000, type: 'Pop' },
+  { name: 'Halsey', basePoints: 230000, type: 'Pop' },
+  { name: 'Imagine Dragons', basePoints: 270000, type: 'Rock' },
+  { name: 'Coldplay', basePoints: 300000, type: 'Rock' },
+  { name: 'Maroon 5', basePoints: 260000, type: 'Rock' },
+  { name: 'Linkin Park', basePoints: 280000, type: 'Rock' },
+  { name: 'OneRepublic', basePoints: 220000, type: 'Rock' },
+  { name: 'One Direction', basePoints: 180000, type: 'Pop' },
+  { name: 'BLACKPINK', basePoints: 350000, type: 'Kpop' },
+  { name: 'BTS', basePoints: 400000, type: 'Kpop' },
+  { name: 'TWICE', basePoints: 250000, type: 'Kpop' },
+  { name: 'NewJeans', basePoints: 300000, type: 'Kpop' },
+  { name: 'Stray Kids', basePoints: 270000, type: 'Kpop' },
+  { name: 'SEVENTEEN', basePoints: 260000, type: 'Kpop' },
+  { name: 'EXO', basePoints: 240000, type: 'Kpop' },
+  { name: 'IU', basePoints: 310000, type: 'Kpop' },
+  { name: 'Jennie', basePoints: 260000, type: 'Kpop' },
+  { name: 'Lisa', basePoints: 260000, type: 'Kpop' },
+  { name: 'Jungkook', basePoints: 320000, type: 'Kpop' },
+  { name: 'Jimin', basePoints: 300000, type: 'Kpop' },
+  { name: 'V', basePoints: 280000, type: 'Kpop' },
+  { name: 'RM', basePoints: 250000, type: 'Kpop' },
+  { name: 'Michael Jackson', basePoints: 500000, type: 'Pop' },
+  { name: 'Elvis Presley', basePoints: 450000, type: 'Pop' },
+  { name: 'Freddie Mercury', basePoints: 350000, type: 'Rock' },
+  { name: 'Whitney Houston', basePoints: 380000, type: 'R&B' },
+  { name: 'Madonna', basePoints: 360000, type: 'Pop' },
+  { name: 'Prince', basePoints: 330000, type: 'Pop' },
+  { name: 'David Bowie', basePoints: 300000, type: 'Rock' },
+  { name: 'Celine Dion', basePoints: 320000, type: 'Pop' },
+  { name: 'Mariah Carey', basePoints: 340000, type: 'Pop' },
+  { name: 'Stevie Wonder', basePoints: 310000, type: 'R&B' },
+  { name: 'Eminem', basePoints: 420000, type: 'Rap' },
+  { name: 'Kendrick Lamar', basePoints: 410000, type: 'Rap' },
+  { name: 'Travis Scott', basePoints: 370000, type: 'Rap' },
+  { name: 'Future', basePoints: 330000, type: 'Rap' },
+  { name: '21 Savage', basePoints: 300000, type: 'Rap' },
+  { name: 'Nicki Minaj', basePoints: 350000, type: 'Rap' },
+  { name: 'Cardi B', basePoints: 310000, type: 'Rap' },
+  { name: 'Lil Nas X', basePoints: 260000, type: 'Rap' },
+  { name: 'Tyler, the Creator', basePoints: 300000, type: 'Rap' },
+  { name: 'J. Cole', basePoints: 310000, type: 'Rap' },
+  { name: 'Shakira', basePoints: 380000, type: 'Latin' },
+  { name: 'Bad Bunny', basePoints: 420000, type: 'Latin' },
+  { name: 'Karol G', basePoints: 360000, type: 'Latin' },
+  { name: 'Rosalía', basePoints: 310000, type: 'Latin' },
+  { name: 'Enrique Iglesias', basePoints: 260000, type: 'Latin' },
+  { name: 'Daddy Yankee', basePoints: 300000, type: 'Latin' },
+  { name: 'Maluma', basePoints: 280000, type: 'Latin' },
+  { name: 'Anitta', basePoints: 250000, type: 'Latin' },
+  { name: 'Luis Fonsi', basePoints: 220000, type: 'Latin' },
+  { name: 'J Balvin', basePoints: 320000, type: 'Latin' },
+  { name: 'Tulus', basePoints: 250000, type: 'Pop' },
+  { name: 'Raisa', basePoints: 220000, type: 'Pop' },
+  { name: 'Isyana Sarasvati', basePoints: 200000, type: 'Pop' },
+  { name: 'Afgan', basePoints: 190000, type: 'Pop' },
+  { name: 'Judika', basePoints: 210000, type: 'Pop' },
+  { name: 'Noah', basePoints: 260000, type: 'Rock' },
+  { name: 'Dewa 19', basePoints: 280000, type: 'Rock' },
+  { name: 'Pamungkas', basePoints: 180000, type: 'Pop' },
+  { name: 'Mahalini', basePoints: 230000, type: 'Pop' },
+  { name: 'Nadin Amizah', basePoints: 210000, type: 'Pop' },
+  { name: 'Aurora', basePoints: 150000, type: 'Pop' },
+  { name: 'Conan Gray', basePoints: 210000, type: 'Pop' },
+  { name: 'Gracie Abrams', basePoints: 190000, type: 'Pop' },
+  { name: 'Joji', basePoints: 240000, type: 'R&B' },
+  { name: 'Lorde', basePoints: 260000, type: 'Pop' },
+  { name: 'Troye Sivan', basePoints: 200000, type: 'Pop' },
+  { name: 'Mitski', basePoints: 220000, type: 'Pop' },
+  { name: 'Frank Ocean', basePoints: 300000, type: 'R&B' },
+  { name: 'Sabrina Carpenter', basePoints: 340000, type: 'Pop' },
+  { name: 'Chappell Roan', basePoints: 320000, type: 'Pop' }
 ];
 
 export const NPC_SONG_TITLES = [
@@ -178,23 +167,30 @@ const getNPCTitle = (seed: number, isAlbum: boolean) => {
   return `${adj} ${noun}`;
 };
 
-export const generateNPCSongs = (multiplier: number = 1, seed: number = 1) => {
+export const generateNPCSongs = (multiplier: number = 1, seed: number = 1, excludeName: string = '') => {
   const songs: any[] = [];
   NPC_ARTISTS.forEach((npc, i) => {
-    for (let j = 0; j < 4; j++) {
-      // Stable base for this song to ensure consistency across weeks
+    if (npc.name.toLowerCase() === excludeName.toLowerCase()) return;
+    const songsToRelease = Math.min(15, 3 + Math.floor(seed / 12));
+    const disco = ARTIST_DISCOGRAPHY || {};
+    
+    for (let j = 0; j < songsToRelease; j++) {
       const basePseudo = Math.floor(Math.abs(Math.sin((i + 1) * (j + 1))) * 50000);
-      // Small weekly fluctuation
       const weeklyFluctuation = Math.floor(Math.abs(Math.cos(seed * (i + j + 1))) * 15000);
       
       const titleSeed = Math.floor(Math.abs(Math.cos(i * 10 + j) * 1000));
-      const title = getNPCTitle(titleSeed, false);
+      const fallbackTitle = getNPCTitle(titleSeed, false);
+      const trackDisco = disco[npc.name]?.tracks?.[j];
+      const title = trackDisco?.title || fallbackTitle;
+      const coverImage = trackDisco?.cover || null;
       
       songs.push({
         id: `${npc.name}-${j}-song`,
         title: `${title}`,
         artist: npc.name,
-        points: Math.floor((npc.basePoints * 1.25 * (1 - j * 0.2) + basePseudo + weeklyFluctuation) * multiplier),
+        artistGenre: npc.type,
+        coverImage,
+        points: Math.floor((npc.basePoints * 1.25 * (1 - j * 0.15) + basePseudo + weeklyFluctuation) * multiplier),
         type: 'Single' as const,
         isPlayer: false
       });
@@ -203,20 +199,30 @@ export const generateNPCSongs = (multiplier: number = 1, seed: number = 1) => {
   return songs;
 };
 
-export const generateNPCAlbums = (multiplier: number = 1, seed: number = 1) => {
+export const generateNPCAlbums = (multiplier: number = 1, seed: number = 1, excludeName: string = '') => {
   const albums: any[] = [];
   NPC_ARTISTS.forEach((npc, i) => {
-    for (let j = 0; j < 3; j++) {
+    if (npc.name.toLowerCase() === excludeName.toLowerCase()) return;
+    const albumsToRelease = Math.min(5, 2 + Math.floor(seed / 24));
+    const disco = ARTIST_DISCOGRAPHY || {};
+
+    for (let j = 0; j < albumsToRelease; j++) {
       const basePseudo = Math.floor(Math.abs(Math.cos((i + 1) * (j + 1))) * 30000);
       const weeklyFluctuation = Math.floor(Math.abs(Math.sin(seed * (i + j + 1))) * 10000);
       
       const titleSeed = Math.floor(Math.abs(Math.sin(i * 10 + j) * 1000));
-      const title = getNPCTitle(titleSeed, true);
+      const fallbackTitle = getNPCTitle(titleSeed, true);
+      const albumDisco = disco[npc.name]?.albums?.[j];
+      const title = albumDisco?.title || fallbackTitle;
+      const coverImage = albumDisco?.cover || null;
+
       albums.push({
         id: `${npc.name}-${j}-album`,
         title: `${title}`,
         artist: npc.name,
-        points: Math.floor((npc.basePoints * 0.8 * (1 - j * 0.25) + basePseudo + weeklyFluctuation) * multiplier),
+        artistGenre: npc.type,
+        coverImage,
+        points: Math.floor((npc.basePoints * 0.8 * (1 - j * 0.2) + basePseudo + weeklyFluctuation) * multiplier),
         type: 'Album' as const,
         isPlayer: false
       });

@@ -8,6 +8,7 @@ export interface GrammysNominee {
   artist: string;
   isPlayer: boolean;
   type: 'Single' | 'Album' | 'Artist';
+  coverImage?: string | null;
 }
 
 export interface GrammysCategoryResult {

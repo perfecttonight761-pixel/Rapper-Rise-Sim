@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Upload, Image as ImageIcon, Music, Check, DollarSign, Calendar } from 'lucide-react';
 import { GameState, Genre, Song, Album, ReleaseStatus, DailyReportData } from '../types';
 import { compressImage } from '../imageUtils';
+import { NPC_ARTISTS } from '../constants';
 
 interface StudioViewProps {
   gameState: GameState;
@@ -49,6 +50,23 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
   const [songwriterLvl, setSongwriterLvl] = useState(0);
   const [producerLvl, setProducerLvl] = useState(0);
   const [composerLvl, setComposerLvl] = useState(0);
+
+  const rankedNPCs = [...NPC_ARTISTS].sort((a, b) => a.name.localeCompare(b.name));
+
+  const calculateCollabCost = (npc: any) => {
+     // Taylor Swift is the benchmark at 450000 base points = $5,000,000
+     return Math.ceil((npc.basePoints / 450000) * 5000000);
+  };
+
+  const handleCollabChange = (val: string) => {
+    setCollab(val);
+    const npc = NPC_ARTISTS.find(n => n.name === val);
+    if (npc) {
+        setCollabCost(calculateCollabCost(npc));
+    } else {
+        setCollabCost(0);
+    }
+  };
 
   const calculateTotalCost = () => {
     const swCost = songwriterLvl === 0 ? 0 : (songwriterLvl * 500);
@@ -157,12 +175,17 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
           </div>
           <div className="flex gap-4">
             <div className="flex-1">
-              <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Collaborator Name (Optional)</label>
-              <input type="text" value={collab} onChange={e => setCollab(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 focus:bg-white/5 transition-all font-mono" placeholder="e.g. Snoop Dogg" />
-            </div>
-            <div className="w-1/3">
-              <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Collab Cost ($)</label>
-              <input type="number" min="0" value={collabCost || ''} onChange={e => setCollabCost(Math.max(0, parseInt(e.target.value) || 0))} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 focus:bg-white/5 transition-all font-mono" placeholder="0" />
+              <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Select Collaborator (Optional)</label>
+              <div className="flex gap-4">
+                 <select value={collab} onChange={e => handleCollabChange(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all appearance-none font-mono">
+                   <option value="" className="bg-zinc-900">None</option>
+                   {rankedNPCs.map(npc => (
+                     <option key={npc.name} value={npc.name} className="bg-zinc-900">
+                       {npc.name} (${calculateCollabCost(npc).toLocaleString()})
+                     </option>
+                   ))}
+                 </select>
+              </div>
             </div>
           </div>
         </div>

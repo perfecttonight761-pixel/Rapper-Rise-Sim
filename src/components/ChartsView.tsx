@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { GameState } from '../types';
-import { Calendar, Info, Share, Star, Plus, ArrowDown, ArrowUp, ArrowRight, Music2, X } from 'lucide-react';
+import { Calendar, Info, Share, Star, Plus, ArrowDown, ArrowUp, ArrowRight, Music2, X, History } from 'lucide-react';
 import { computeCharts } from '../chartUtils';
+import { ChartHistoryView } from './ChartHistoryView';
 
 interface ChartsViewProps {
   gameState: GameState;
@@ -12,6 +13,7 @@ type ChartType = 'Hot100' | 'Global200Single' | 'Global200Album' | 'RegionAmeric
 
 export function ChartsView({ gameState, onClose }: ChartsViewProps) {
   const [activeChart, setActiveChart] = useState<ChartType>('Hot100');
+  const [isViewingHistory, setIsViewingHistory] = useState(false);
 
   // Chart Logic
   const chartsData = useMemo(() => {
@@ -40,6 +42,10 @@ export function ChartsView({ gameState, onClose }: ChartsViewProps) {
   // Format the date like "MAY 2, 2026"
   const formattedDate = chartsData.today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
 
+  if (isViewingHistory) {
+     return <ChartHistoryView gameState={gameState} onClose={() => setIsViewingHistory(false)} />;
+  }
+
   return (
     <div className="fixed inset-0 z-[200] bg-[#f2f0eb] text-black font-sans overflow-y-auto">
       {onClose && (
@@ -50,6 +56,19 @@ export function ChartsView({ gameState, onClose }: ChartsViewProps) {
           <X className="w-6 h-6" />
         </button>
       )}
+
+      {/* History Button */}
+      <button 
+         onClick={() => setIsViewingHistory(true)}
+         className="fixed top-4 left-4 w-12 h-12 flex items-center justify-center bg-black hover:bg-gray-800 text-white rounded-full transition-all shadow-md active:scale-95 z-[210]"
+      >
+         {gameState.artist?.image ? (
+            <img src={gameState.artist.image} className="w-full h-full object-cover rounded-full p-0.5" alt="Artist Profile" />
+         ) : (
+            <History className="w-5 h-5" />
+         )}
+         <div className="absolute -bottom-1 -right-1 bg-[#00f878] text-black text-[9px] font-bold px-1 rounded-sm shadow-sm border border-black/10">HISTORY</div>
+      </button>
 
       {/* Header Section */}
       <div className="pt-12 pb-6 px-4 flex flex-col items-center justify-center">

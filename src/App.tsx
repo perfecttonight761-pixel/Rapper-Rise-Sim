@@ -545,24 +545,41 @@ export default function App() {
          if (m.sold >= m.stock) return m;
 
          const linkedRelease = updatedReleases.find(r => r.id === m.releaseId);
-         const pop = Math.max(10, (newAmériquePop + newLatinPop + newEuropePop) / 3);
+         const pop = Math.max(1, (newAmériquePop + newLatinPop + newEuropePop) / 3);
+         const levelMult = 1 + (artistLevel * 0.8);
          
-         let dailyDemand = (pop / 100) * 100; // base demand 
-         if (linkedRelease) {
-            const daysSincePublished = linkedRelease.releaseDate ? Math.max(0, Math.floor((currentDateObj.getTime() - new Date(linkedRelease.releaseDate).getTime()) / (1000 * 3600 * 24))) : 1000;
-            if (linkedRelease.status === 'Scheduled') {
-                dailyDemand *= 2.5; // Pre-orders hype
-            } else if (daysSincePublished < 14) {
-                dailyDemand *= 4; // Release hype
-            } else if (daysSincePublished > 100) {
-                dailyDemand *= 0.5; // decay
-            }
+         let dailyDemand = pop * levelMult * 0.1; // Base: level 10 & pop 20 -> 20 * 9 * 0.1 = 18. Level 99 & pop 100 -> 100 * 80 * 0.1 = 800
+
+         // Adjust demand by type
+         switch (m.type) {
+             case 'Digital Download': dailyDemand *= 3.0; break;
+             case 'CD': dailyDemand *= 2.0; break;
+             case 'Single Pack': dailyDemand *= 2.2; break;
+             case 'Vinyl': dailyDemand *= 1.2; break;
+             case 'T-Shirt': dailyDemand *= 1.5; break;
+             case 'Cassette': dailyDemand *= 0.4; break;
+             case 'Box Set': dailyDemand *= 0.2; break;
          }
 
-         const expectedPrice = m.cost * 1.5; 
-         const priceRatio = m.price / Math.max(1, expectedPrice);
+         if (linkedRelease) {
+             const daysSincePublished = linkedRelease.releaseDate ? Math.max(0, Math.floor((currentDateObj.getTime() - new Date(linkedRelease.releaseDate).getTime()) / (1000 * 3600 * 24))) : 1000;
+             if (linkedRelease.status === 'Scheduled') {
+                 dailyDemand *= 3.0; // Pre-orders hype
+             } else if (daysSincePublished < 14) {
+                 dailyDemand *= 5.0; // Release hype
+             } else if (daysSincePublished < 30) {
+                 dailyDemand *= 2.0;
+             } else if (daysSincePublished > 100) {
+                 dailyDemand *= 0.3; // decay
+             }
+         }
+
+         // For digital downloads, cost is 0, so we use a fallback base
+         const expectedPrice = m.cost === 0 ? 5 : m.cost * 2.5; 
+         const priceRatio = m.price / expectedPrice;
+         
          // Stricter price penalty: > 2x expected price means almost 0 sales
-         const priceSensitivity = Math.max(0, Math.min(1.5, Math.exp(-(priceRatio - 1) * 2.5))); 
+         const priceSensitivity = Math.max(0, Math.min(2.0, Math.exp(-(priceRatio - 1) * 2.5))); 
 
          let dailySales = Math.floor(dailyDemand * priceSensitivity * (0.8 + Math.random() * 0.4));
          if (dailySales < 0) dailySales = 0;
@@ -938,8 +955,8 @@ export default function App() {
                 onClick={() => setScreen('saves')}
                 className="w-full h-16 flex items-center justify-center gap-4 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-white active:scale-95 font-black tracking-widest text-sm rounded-2xl transition-all shadow-lg group relative overflow-hidden"
               >
-                <Activity className="w-5 h-5 fill-current" />
-                RESUME LEGACY
+                <Save className="w-5 h-5 fill-current" />
+                LOAD GAME / SLOTS
               </button>
             )}
             <button 
@@ -1017,8 +1034,26 @@ export default function App() {
                               <button 
                                 onClick={() => {
                                   if (confirm(`Overwrite Slot ${slotNum} with your current game?`)) {
-                                     setCurrentSaveId(slotId);
-                                     alert(`Game saved to Slot ${slotNum}!`);
+                                     // Sync save immediately
+                                     try {
+                                        localStorage.setItem('musician_simulator_save_' + slotId, JSON.stringify(gameState));
+                                        localStorage.setItem('musician_simulator_last_save_id', slotId);
+                                        setSaveProfiles(prev => {
+                                          let updated = [...prev];
+                                          const existIdx = updated.findIndex(s => s.id === slotId);
+                                          if (existIdx >= 0) {
+                                            updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: gameState.artist?.name || 'Unknown' };
+                                          } else {
+                                            updated.push({ id: slotId, artistName: gameState.artist?.name || 'Unknown', lastPlayed: Date.now() });
+                                          }
+                                          localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
+                                          return updated;
+                                        });
+                                        setCurrentSaveId(slotId);
+                                        alert(`Game saved to Slot ${slotNum}!`);
+                                     } catch (err) {
+                                        alert("Failed to save game. Storage might be full.");
+                                     }
                                   }
                                 }}
                                 className="w-full bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors"
@@ -1061,8 +1096,25 @@ export default function App() {
                            {gameState && (
                               <button 
                                 onClick={() => {
-                                  setCurrentSaveId(slotId);
-                                  alert(`Game saved to Slot ${slotNum}!`);
+                                   try {
+                                      localStorage.setItem('musician_simulator_save_' + slotId, JSON.stringify(gameState));
+                                      localStorage.setItem('musician_simulator_last_save_id', slotId);
+                                      setSaveProfiles(prev => {
+                                        let updated = [...prev];
+                                        const existIdx = updated.findIndex(s => s.id === slotId);
+                                        if (existIdx >= 0) {
+                                          updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: gameState.artist?.name || 'Unknown' };
+                                        } else {
+                                          updated.push({ id: slotId, artistName: gameState.artist?.name || 'Unknown', lastPlayed: Date.now() });
+                                        }
+                                        localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
+                                        return updated;
+                                      });
+                                      setCurrentSaveId(slotId);
+                                      alert(`Game saved to Slot ${slotNum}!`);
+                                   } catch(err) {
+                                      alert("Failed to save. Storage might be full.");
+                                   }
                                 }}
                                 className="w-full bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors mb-2"
                               >

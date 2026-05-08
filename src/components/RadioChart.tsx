@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { GameState, Song } from '../types';
 import { ChevronLeft, RadioReceiver } from 'lucide-react';
 import { generateNPCSongs } from '../constants';
+import { ARTIST_IMAGES } from '../artistImages';
 
 export function RadioChart({ gameState, onBack }: { gameState: GameState, onBack: () => void }) {
   const currentDateObj = new Date(gameState.time.startDate);
@@ -58,7 +59,8 @@ export function RadioChart({ gameState, onBack }: { gameState: GameState, onBack
      });
      
      const daySeed = Math.floor(gameState.time.daysPassed / 10);
-     const npcSongs = generateNPCSongs(1, daySeed).map((s, i) => {
+     const pName = gameState.artist?.name || '';
+     const npcSongs = generateNPCSongs(1, daySeed, pName).map((s, i) => {
         const isHit = i % 10 === 0 ? 3.5 : (i % 3 === 0 ? 0.5 : 1);
         const weeksOld = Math.max(1, (gameState.time.daysPassed % (i * 10 + 20)) / 7);
         const distance = Math.abs(weeksOld - 6); // peak week 6
@@ -71,7 +73,7 @@ export function RadioChart({ gameState, onBack }: { gameState: GameState, onBack
            weeklySpins: daily * 7,
            peakSpins: (Math.floor(s.points * 6 * 1.0 * isHit)) * 7,
            daysOnChart: Math.max(1, Math.floor(weeksOld)),
-           coverImage: undefined
+           coverImage: s.coverImage || ARTIST_IMAGES[s.artist as string] || `https://i.pravatar.cc/200?u=${encodeURIComponent(s.artist)}`
         };
      });
      

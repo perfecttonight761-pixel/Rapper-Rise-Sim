@@ -1,5 +1,6 @@
 import { GameState } from './types';
 import { generateNPCSongs, generateNPCAlbums } from './constants';
+import { ARTIST_IMAGES } from './artistImages';
 
 export const computeCharts = (gameState: GameState) => {
     const today = new Date(gameState.time.startDate);
@@ -12,10 +13,11 @@ export const computeCharts = (gameState: GameState) => {
     const currentWeekFluctuation = 1 + (Math.sin(currentWeekNumber / 10) * 0.05);
     const prevWeekFluctuation = 1 + (Math.sin(previousWeekNumber / 10) * 0.05);
     
-    const npcSingles = generateNPCSongs(currentWeekFluctuation, currentWeekNumber);
-    const npcAlbums = generateNPCAlbums(currentWeekFluctuation, currentWeekNumber);
-    const npcSinglesPrev = generateNPCSongs(prevWeekFluctuation, previousWeekNumber);
-    const npcAlbumsPrev = generateNPCAlbums(prevWeekFluctuation, previousWeekNumber);
+    const pName = gameState.artist?.name || '';
+    const npcSingles = generateNPCSongs(currentWeekFluctuation, currentWeekNumber, pName);
+    const npcAlbums = generateNPCAlbums(currentWeekFluctuation, currentWeekNumber, pName);
+    const npcSinglesPrev = generateNPCSongs(prevWeekFluctuation, previousWeekNumber, pName);
+    const npcAlbumsPrev = generateNPCAlbums(prevWeekFluctuation, previousWeekNumber, pName);
 
     const publishedReleases = gameState.releases.filter(r => r.status === 'Published' && r.releaseDate);
 
@@ -79,10 +81,11 @@ export const computeCharts = (gameState: GameState) => {
 
     const npcItemsObj = (items: any[], weekNum: number) => {
         return items.map((npc) => {
-            const isLatin = npc.artist === 'Bad Bunny' || npc.artist === 'J Balvin' || npc.artist === 'Carol G' || npc.artist === 'Rosalia';
-            const isKpop = npc.artist === 'BTS (Band)' || npc.artist === 'Blackpink' || npc.artist === 'Stray Kids';
-            const isEuro = npc.artist === 'Dua Lip' || npc.artist === 'Ed Sheran' || npc.artist === 'Adeley';
-            const isCountry = npc.artist === 'Morgan Walln' || npc.artist === 'Luka Comb' || npc.artist === 'Zach Bryan';
+            const genre = npc.artistGenre || 'Pop';
+            const isLatin = genre === 'Latin';
+            const isKpop = genre === 'Kpop';
+            const isEuro = genre === 'Pop' && (npc.artist === 'Dua Lipa' || npc.artist === 'Ed Sheeran' || npc.artist === 'Adele');
+            const isCountry = genre === 'Country';
             
             let popAm = isLatin ? 0.2 : isKpop ? 0.3 : isEuro ? 0.3 : isCountry ? 0.9 : 0.6;
             let popLat = isLatin ? 0.8 : isKpop ? 0.2 : isEuro ? 0.1 : isCountry ? 0.05 : 0.2;
@@ -97,7 +100,7 @@ export const computeCharts = (gameState: GameState) => {
                 artist: npc.artist,
                 type: npc.type,
                 isPlayer: false,
-                coverImage: `https://picsum.photos/seed/${encodeURIComponent(npc.id + npc.artist)}/200/200`,
+                coverImage: npc.coverImage || ARTIST_IMAGES[npc.artist as string] || `https://i.pravatar.cc/200?u=${encodeURIComponent(npc.artist)}`,
                 points: npc.points,
                 computedTotal: npc.points,
                 activity: npc.points * 1.2,

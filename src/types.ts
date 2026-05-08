@@ -141,13 +141,14 @@ export interface GameState {
     id: string;
     releaseId: string;
     name: string;
-    type: 'Vinyl' | 'CD' | 'Cassette' | 'Digital Download' | 'Box Set' | 'T-Shirt';
+    type: 'Vinyl' | 'CD' | 'Cassette' | 'Digital Download' | 'Box Set' | 'T-Shirt' | 'Single Pack';
     image: string;
     price: number;
     cost: number;
     stock: number;
     sold: number;
     revenue: number;
+    color?: string;
   }[];
   skills: {
     performance: number;

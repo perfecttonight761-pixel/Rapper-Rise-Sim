@@ -835,8 +835,12 @@ export default function App() {
     if (!artistData) return;
     const initialMoney = CAPITAL_MAP[artistData.capital];
     
-    const newId = 'save_' + Date.now();
-    setCurrentSaveId(newId);
+    // Fallback if not using slots:
+    if (!currentSaveId || !currentSaveId.startsWith('slot_')) {
+        const newId = 'save_' + Date.now();
+        setCurrentSaveId(newId);
+    }
+    
     setGameState({
       version: 1,
       artist: {
@@ -963,63 +967,149 @@ export default function App() {
 
   if (screen === 'saves') {
     return (
-      <div className="min-h-screen bg-[#050507] flex flex-col items-center justify-center p-6 text-white overflow-hidden relative font-sans selection:bg-purple-500/30">
-        <div className="absolute inset-0 pointer-events-none z-0">
-          <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-purple-600/10 blur-[150px] rounded-full"></div>
-        </div>
-        <div className="relative z-10 w-full max-w-2xl bg-black/40 border border-white/10 rounded-[2rem] p-8 backdrop-blur-xl">
-           <div className="flex items-center justify-between mb-8">
-             <h2 className="text-3xl font-black italic tracking-tighter text-purple-400">Save Profiles</h2>
-             <button onClick={() => setScreen('home')} className="text-white/40 hover:text-white font-bold text-sm tracking-widest uppercase">
-               Back
-             </button>
-           </div>
-           <div className="space-y-4">
-              {saveProfiles.sort((a,b) => b.lastPlayed - a.lastPlayed).map((profile) => (
-                 <div key={profile.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between hover:bg-white/10 transition-colors">
-                    <div>
-                      <h3 className="text-xl font-bold tracking-tight mb-1">{profile.artistName}</h3>
-                      <p className="text-xs text-white/40 font-bold uppercase tracking-widest">Played: {new Date(profile.lastPlayed).toLocaleString()}</p>
-                    </div>
-                    <div className="flex gap-3">
-                       <button 
-                         onClick={() => {
-                           const saved = localStorage.getItem('musician_simulator_save_' + profile.id);
-                           if (saved) {
-                              setGameState(JSON.parse(saved));
-                              setCurrentSaveId(profile.id);
-                              setScreen('dashboard');
-                           }
-                         }}
-                         className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold text-sm"
-                       >
-                         Resume
-                       </button>
-                       <button 
-                         onClick={() => {
-                           if (confirm("Delete this save?")) {
-                             localStorage.removeItem('musician_simulator_save_' + profile.id);
-                             if (localStorage.getItem('musician_simulator_last_save_id') === profile.id) {
-                               localStorage.removeItem('musician_simulator_last_save_id');
-                             }
-                             setSaveProfiles(prev => {
-                               const updated = prev.filter(p => p.id !== profile.id);
-                               localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
-                               return updated;
-                             });
-                           }
-                         }}
-                         className="px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-500 rounded-lg font-bold text-sm"
-                       >
-                         Delete
-                       </button>
-                    </div>
+      <div className="flex flex-col h-full bg-[#0a0a0a] overflow-y-auto w-full p-4 md:p-12 font-sans selection:bg-purple-500/30">
+        <div className="max-w-5xl mx-auto w-full">
+          <header className="mb-12">
+            <div className="flex items-center gap-4 mb-4">
+               <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-xl">
+                  <Save className="w-6 h-6 text-white" />
+               </div>
+               <div>
+                  <h1 className="text-3xl font-black text-white tracking-tight uppercase">Save & Load Manager</h1>
+                  <p className="text-white/40 text-sm font-medium tracking-wide">Manage your career legacies via Slots or backup as JSON Files.</p>
+               </div>
+            </div>
+            <div className="h-px w-full bg-gradient-to-r from-white/10 to-transparent" />
+          </header>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            {[1, 2, 3].map(slotNum => {
+               const slotId = `slot_${slotNum}`;
+               const profile = saveProfiles.find(p => p.id === slotId);
+               
+               return (
+                 <div key={slotId} className="bg-[#111] border border-white/10 rounded-[2rem] p-6 relative overflow-hidden group hover:border-purple-500/30 transition-all flex flex-col">
+                   <div className="mb-4">
+                     <span className="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-purple-500/20">Slot {slotNum}</span>
+                   </div>
+                   
+                   {profile ? (
+                     <div className="flex flex-col flex-1">
+                        <h3 className="text-2xl font-black mb-1 truncate">{profile.artistName}</h3>
+                        <p className="text-xs text-white/40 font-bold uppercase tracking-widest mb-6">Last Played: {new Date(profile.lastPlayed).toLocaleString()}</p>
+                        
+                        <div className="mt-auto space-y-2">
+                           <button 
+                             onClick={() => {
+                               const saved = localStorage.getItem('musician_simulator_save_' + slotId);
+                               if (saved) {
+                                  setGameState(JSON.parse(saved));
+                                  setCurrentSaveId(slotId);
+                                  setScreen('dashboard');
+                               }
+                             }}
+                             className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-xl active:scale-95"
+                           >
+                             Load Game
+                           </button>
+                           
+                           {gameState && (
+                              <button 
+                                onClick={() => {
+                                  if (confirm(`Overwrite Slot ${slotNum} with your current game?`)) {
+                                     setCurrentSaveId(slotId);
+                                     alert(`Game saved to Slot ${slotNum}!`);
+                                  }
+                                }}
+                                className="w-full bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors"
+                              >
+                                Save Current Here
+                              </button>
+                           )}
+                           
+                           <button 
+                             onClick={() => {
+                               if (confirm(`Are you sure you want to delete Slot ${slotNum}?`)) {
+                                 localStorage.removeItem('musician_simulator_save_' + slotId);
+                                 if (localStorage.getItem('musician_simulator_last_save_id') === slotId) {
+                                   localStorage.removeItem('musician_simulator_last_save_id');
+                                 }
+                                 setSaveProfiles(prev => {
+                                   const updated = prev.filter(p => p.id !== slotId);
+                                   localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
+                                   return updated;
+                                 });
+                                 if (currentSaveId === slotId) {
+                                     setCurrentSaveId(null);
+                                 }
+                               }
+                             }}
+                             className="w-full bg-red-600/10 hover:bg-red-600/20 text-red-400 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors border border-red-500/10"
+                           >
+                             Delete Slot
+                           </button>
+                        </div>
+                     </div>
+                   ) : (
+                     <div className="flex flex-col flex-1 items-center justify-center py-6 text-center">
+                        <div className="w-12 h-12 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center mb-4">
+                           <Save className="w-5 h-5 text-white/20" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white/50 mb-6">Empty Slot</h3>
+                        
+                        <div className="mt-auto w-full space-y-2">
+                           {gameState && (
+                              <button 
+                                onClick={() => {
+                                  setCurrentSaveId(slotId);
+                                  alert(`Game saved to Slot ${slotNum}!`);
+                                }}
+                                className="w-full bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors mb-2"
+                              >
+                                Save Current Here
+                              </button>
+                           )}
+                           <button 
+                             onClick={() => {
+                               if (gameState && !confirm("You are currently playing a game. Starting a new save will stop your current progress. Did you save it to a slot first?")) {
+                                  return;
+                               }
+                               setCurrentSaveId(slotId);
+                               setGameState(null);
+                               setScreen('create');
+                             }}
+                             className="w-full bg-white/10 hover:bg-white/20 border border-white/10 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors shadow-xl active:scale-95"
+                           >
+                             Start New Career
+                           </button>
+                        </div>
+                     </div>
+                   )}
                  </div>
-              ))}
-              {saveProfiles.length === 0 && (
-                <div className="text-center text-white/40 p-10 font-bold text-sm">No saves found. Start a new legacy!</div>
-              )}
-           </div>
+               );
+            })}
+          </div>
+
+          <div className="bg-[#111] border border-white/5 rounded-[2rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl max-w-2xl mx-auto">
+             <div className="flex items-center gap-3 mb-6">
+                <Download className="w-6 h-6 text-blue-400" />
+                <h2 className="text-2xl font-black text-white uppercase tracking-tight">Manual File Backup</h2>
+             </div>
+             <p className="text-white/50 text-sm mb-6 max-w-lg leading-relaxed">You can download your entire save data as a JSON file, or upload one to continue a previous legacy.</p>
+             <div className="flex flex-col sm:flex-row gap-4">
+                <button 
+                  onClick={handleSaveGame} 
+                  disabled={!gameState}
+                  className="flex-1 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 text-white font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" /> Download Current Save
+                </button>
+                <label className="flex-1 bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer">
+                  <Upload className="w-4 h-4" /> Upload JSON Save
+                  <input type="file" accept=".json" className="hidden" onChange={handleLoadSave} />
+                </label>
+             </div>
+          </div>
         </div>
       </div>
     );
@@ -1190,6 +1280,14 @@ export default function App() {
               </button>
               
               <div className="h-px bg-white/10 my-2" />
+              
+              <button 
+                onClick={() => { setScreen('saves'); setSidebarOpen(false); }}
+                className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium transition-colors ${screen === 'saves' ? 'bg-purple-600/20 text-purple-200 border border-purple-500/30' : 'bg-transparent text-white/40 hover:bg-white/5 hover:text-white'}`}
+              >
+                <Save className="w-4 h-4" />
+                Save / Load Game
+              </button>
               
               <button 
                 onClick={() => { setScreen('settings'); setSidebarOpen(false); }}

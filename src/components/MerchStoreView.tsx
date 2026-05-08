@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GameState } from '../types';
-import { ShoppingBag, Plus, Disc, Image as ImageIcon, Check, X } from 'lucide-react';
+import { ShoppingBag, Plus, Disc, Image as ImageIcon, Check, X, Package } from 'lucide-react';
 import { compressImage } from '../imageUtils';
 
 interface MerchStoreViewProps {
@@ -14,7 +14,7 @@ const MERCH_TYPES = [
    { type: 'Cassette', cost: 3, defaultPrice: 12 },
    { type: 'T-Shirt', cost: 10, defaultPrice: 35 },
    { type: 'Box Set', cost: 30, defaultPrice: 100 },
-   { type: 'Single Pack', cost: 5, defaultPrice: 15 }, // Requested by user
+   { type: 'Single Pack', cost: 5, defaultPrice: 15 },
    { type: 'Digital Download', cost: 0, defaultPrice: 5 }
 ];
 
@@ -26,6 +26,9 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
   const [stockToOrder, setStockToOrder] = useState(1000);
   const [merchPrice, setMerchPrice] = useState(30);
   const [merchImage, setMerchImage] = useState('');
+  const [merchColor, setMerchColor] = useState('#ffffff');
+  
+  const [restockAmount, setRestockAmount] = useState<Record<string, number>>({});
 
   const merchTypeInfo = MERCH_TYPES.find(t => t.type === selectedType) || MERCH_TYPES[0];
   const upfrontCost = merchTypeInfo.cost * stockToOrder;
@@ -64,7 +67,8 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
         cost: merchTypeInfo.cost,
         stock: stockToOrder,
         sold: 0,
-        revenue: 0
+        revenue: 0,
+        color: merchColor,
      };
 
      setGameState(prev => {
@@ -85,6 +89,31 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
      setLinkedRelease('');
      setStockToOrder(1000);
      setMerchPrice(MERCH_TYPES[0].defaultPrice);
+     setMerchColor('#ffffff');
+  };
+
+  const handleRestock = (merchId: string, costPerUnit: number) => {
+     const qty = restockAmount[merchId] || 500;
+     const totalCost = costPerUnit * qty;
+     
+     if ((gameState.stats?.money || 0) < totalCost) {
+         alert("Not enough money to restock.");
+         return;
+     }
+
+     setGameState(prev => {
+        if (!prev) return prev;
+        return {
+           ...prev,
+           stats: {
+              ...prev.stats,
+              money: (prev.stats?.money || 0) - totalCost
+           },
+           merch: (prev.merch || []).map(m => m.id === merchId ? { ...m, stock: m.stock + qty } : m)
+        };
+     });
+     
+     setRestockAmount(prev => ({...prev, [merchId]: 0}));
   };
 
   return (
@@ -107,7 +136,7 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
 
       {showCreate && (
          <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
-            <div className="bg-[#1f1f1f] rounded-3xl w-full max-w-2xl p-8 border border-white/10 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div className="bg-[#1f1f1f] rounded-3xl w-full max-w-4xl p-8 border border-white/10 shadow-2xl overflow-y-auto max-h-[90vh]">
                <div className="flex justify-between items-center mb-6">
                   <h3 className="text-2xl font-black">Release Merchandise</h3>
                   <button onClick={() => setShowCreate(false)} className="text-white/40 hover:text-white p-2">
@@ -174,25 +203,64 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
                         </div>
                      </div>
 
-                     <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Production Quantity</label>
-                        <input 
-                           type="number" 
-                           min="10"
-                           step="100"
-                           value={stockToOrder}
-                           onChange={e => setStockToOrder(Number(e.target.value))}
-                           className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 outline-none"
-                        />
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                           <label className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Quantity</label>
+                           <input 
+                              type="number" 
+                              min="10"
+                              step="100"
+                              value={stockToOrder}
+                              onChange={e => setStockToOrder(Number(e.target.value))}
+                              className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 outline-none"
+                           />
+                        </div>
+                        <div>
+                           <label className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Disc/Vinyl Color</label>
+                           <div className="flex items-center gap-2 h-[46px] bg-[#111] border border-white/10 rounded-xl px-2">
+                               <input 
+                                 type="color" 
+                                 value={merchColor}
+                                 onChange={e => setMerchColor(e.target.value)}
+                                 className="w-8 h-8 rounded shrink-0 cursor-pointer border-0 bg-transparent p-0"
+                               />
+                               <span className="text-white/60 font-mono text-sm">{merchColor}</span>
+                           </div>
+                        </div>
                      </div>
                   </div>
 
                   <div className="flex flex-col gap-4">
                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Product Image</label>
-                        <label className="w-full aspect-square bg-[#111] border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-colors overflow-hidden group">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-2">Preview & Upload (Click to change)</label>
+                        <label className="w-full aspect-square bg-[#0f0f0f] border border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-purple-500 transition-colors overflow-hidden group relative">
                            {merchImage ? (
-                              <img src={merchImage} alt="Merch preview" className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
+                              <div className="absolute inset-0 flex flex-col justify-center items-center bg-[#151515]">
+                                 <div className="absolute top-4 left-4 z-10 flex flex-col items-start bg-black/40 p-2 rounded backdrop-blur">
+                                     <span className="text-[10px] font-bold uppercase tracking-widest text-[#d2ba96]">{gameState.artist?.name}</span>
+                                     <span className="text-xl font-black uppercase tracking-tighter text-[#d2ba96] leading-none mt-1">{linkedRelease ? gameState.releases.find(r => r.id === linkedRelease)?.title : 'Release Title'}</span>
+                                 </div>
+                                 <div className="relative mt-8 mx-auto w-3/4 aspect-square flex items-center justify-center">
+                                     <div 
+                                       className="absolute top-[5%] right-[-20%] w-[90%] h-[90%] rounded-full shadow-2xl transition-transform duration-500 group-hover:translate-x-4 border border-black/20 z-0"
+                                       style={{ background: `linear-gradient(135deg, ${merchColor}, #111)` }}
+                                     >
+                                        <div className="absolute inset-0 flex justify-center items-center"><div className="w-1/4 h-1/4 rounded-full bg-white/20 border-4 border-[#111]"></div></div>
+                                     </div>
+                                     <div className="absolute inset-0 bg-[#1f1f1f] border border-white/20 rounded-sm shadow-2xl overflow-hidden flex items-center justify-center z-10 p-[2px]">
+                                         <div className="w-full h-full relative z-0">
+                                            <img src={merchImage} className="w-full h-full object-cover" />
+                                         </div>
+                                         <div className="absolute inset-0 z-20 pointer-events-none rounded-[2px]" style={{
+                                             background: 'linear-gradient(105deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 2%, transparent 3%, transparent 97%, rgba(255,255,255,0.1) 98%, rgba(255,255,255,0.4) 100%)',
+                                             boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.2), inset 2px 0 2px rgba(255,255,255,0.4), inset -2px 0 2px rgba(255,255,255,0.1)'
+                                         }}></div>
+                                     </div>
+                                 </div>
+                                 <div className="absolute bottom-4 left-0 right-0 text-center z-10 bg-black/40 backdrop-blur py-1">
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#d2ba96]">{selectedType} version</span>
+                                 </div>
+                              </div>
                            ) : (
                               <>
                                  <ImageIcon className="w-10 h-10 text-white/20 mb-2" />
@@ -200,6 +268,12 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
                               </>
                            )}
                            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                           
+                           {merchImage && (
+                               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                                   <span className="bg-white text-black px-4 py-2 rounded-full font-bold uppercase tracking-widest text-xs shadow-xl">Change Image</span>
+                               </div>
+                           )}
                         </label>
                      </div>
 
@@ -241,22 +315,51 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
                <p className="text-white/40 max-w-sm mx-auto">Design and sell merchandise directly to your fans to boost your income and chart performances.</p>
             </div>
          ) : (
-            gameState.merch.map((item) => (
-               <div key={item.id} className="bg-white/5 border border-white/5 rounded-2xl overflow-hidden group">
-                  <div className="aspect-square bg-[#0f0f0f] relative overflow-hidden">
-                     {item.image ? (
-                        <img src={item.image} className="w-full h-full object-cover" />
-                     ) : (
-                        <div className="w-full h-full flex items-center justify-center"><Disc className="w-16 h-16 text-white/10" /></div>
-                     )}
-                     <div className="absolute top-4 left-4 bg-black/60 backdrop-blur text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
-                        {item.type}
+            gameState.merch.map((item) => {
+               const repRelease = gameState.releases.find(r => r.id === item.releaseId);
+               return (
+               <div key={item.id} className="bg-white/5 border border-white/5 rounded-2xl overflow-hidden group flex flex-col">
+                  
+                  {/* Generated Cover Design UI */}
+                  <div className="relative aspect-square bg-[#0f0f0f] border-b border-white/5 overflow-hidden flex flex-col items-center justify-center group-hover:bg-[#151515] transition-colors p-4">
+                     <div className="absolute top-4 left-4 z-10 flex flex-col items-start bg-black/40 p-2 rounded backdrop-blur">
+                         <span className="text-[10px] font-bold uppercase tracking-widest text-[#d2ba96]">{gameState.artist?.name}</span>
+                         <span className="text-xl font-black uppercase tracking-tighter text-[#d2ba96] leading-none mt-1 break-words line-clamp-2">{repRelease?.title || 'Unknown'}</span>
+                     </div>
+                     
+                     <div className="relative mt-8 mx-auto w-3/4 aspect-square flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
+                         {item.type !== 'Digital Download' && item.type !== 'Cassette' && item.type !== 'T-Shirt' && (
+                           <div 
+                             className="absolute top-[5%] right-[-20%] w-[90%] h-[90%] rounded-full shadow-2xl group-hover:translate-x-6 transition-transform duration-500 border border-black/20 z-0"
+                             style={{ background: `linear-gradient(135deg, ${item.color || '#fff'}, #111)` }}
+                           >
+                              <div className="absolute inset-0 flex justify-center items-center"><div className="w-1/4 h-1/4 rounded-full bg-white/20 border-4 border-[#111]"></div></div>
+                           </div>
+                         )}
+                         <div className="absolute inset-0 bg-[#1f1f1f] border border-white/20 rounded-sm shadow-2xl overflow-hidden flex items-center justify-center z-10 p-[2px]">
+                             <div className="w-full h-full relative z-0">
+                                {item.image ? (
+                                   <img src={item.image} className="w-full h-full object-cover" />
+                                ) : (
+                                   <div className="w-full h-full flex items-center justify-center"><Disc className="w-16 h-16 text-white/10" /></div>
+                                )}
+                             </div>
+                             <div className="absolute inset-0 z-20 pointer-events-none rounded-[2px]" style={{
+                                 background: 'linear-gradient(105deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 2%, transparent 3%, transparent 97%, rgba(255,255,255,0.1) 98%, rgba(255,255,255,0.4) 100%)',
+                                 boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.2), inset 2px 0 2px rgba(255,255,255,0.4), inset -2px 0 2px rgba(255,255,255,0.1)'
+                             }}></div>
+                         </div>
+                     </div>
+                     <div className="absolute bottom-4 left-0 right-0 text-center z-10 bg-black/40 backdrop-blur py-1">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#d2ba96]">{item.type} version</span>
                      </div>
                   </div>
-                  <div className="p-5">
+
+                  <div className="p-5 flex flex-col flex-1">
                      <h3 className="font-bold text-lg mb-1 truncate">{item.name}</h3>
-                     <h4 className="text-xs text-white/40 font-bold uppercase tracking-widest mb-4 truncate">
-                        Linked: {gameState.releases.find(r => r.id === item.releaseId)?.title || 'Unknown'}
+                     <h4 className="text-xs text-white/40 font-bold uppercase tracking-widest mb-4 truncate flex items-center gap-2">
+                        <Package className="w-3 h-3" />
+                        Cost: ${item.cost} / unit
                      </h4>
                      
                      <div className="grid grid-cols-2 gap-4 mb-4">
@@ -270,23 +373,46 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
                         </div>
                      </div>
 
-                     <div className="w-full bg-[#111] h-2 rounded-full overflow-hidden mb-2">
-                        <div className="bg-green-500 h-full" style={{ width: `${Math.min(100, (item.sold / item.stock) * 100)}%` }} />
+                     <div className="w-full bg-[#111] h-2 rounded-full overflow-hidden mb-2 shadow-inner">
+                        <div className="bg-gradient-to-r from-purple-600 to-purple-400 h-full" style={{ width: `${Math.min(100, (item.sold / item.stock) * 100)}%` }} />
                      </div>
                      <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-4">
                         <span className="text-white/40">Inventory</span>
-                        <span className={item.sold >= item.stock ? "text-red-400" : "text-green-400"}>
+                        <span className={item.sold >= item.stock ? "text-red-400 animate-pulse" : "text-green-400"}>
                            {item.sold >= item.stock ? "Sold Out" : `${(item.stock - item.sold).toLocaleString()} Left`}
                         </span>
                      </div>
 
-                     <div className="flex justify-between items-center border-t border-white/5 pt-4">
-                        <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Revenue</span>
-                        <span className="font-black text-green-400">${Math.floor(item.revenue).toLocaleString()}</span>
+                     <div className="flex flex-col gap-2 border-t border-white/5 pt-4 mt-auto">
+                        <div className="flex justify-between items-center mb-2">
+                           <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Revenue</span>
+                           <span className="font-black text-green-400">${Math.floor(item.revenue).toLocaleString()}</span>
+                        </div>
+                        
+                        {item.type !== 'Digital Download' && (
+                        <div className="flex items-stretch gap-2 bg-black/40 rounded-xl overflow-hidden border border-white/5 focus-within:border-purple-500 transition-colors">
+                           <input 
+                              type="number" 
+                              min="100" 
+                              step="100"
+                              value={restockAmount[item.id] === undefined ? 500 : restockAmount[item.id]}
+                              onChange={(e) => setRestockAmount({...restockAmount, [item.id]: Number(e.target.value)})}
+                              className="w-16 bg-transparent text-xs text-center font-bold outline-none text-white p-2"
+                              placeholder="Qty"
+                           />
+                           <button 
+                              onClick={() => handleRestock(item.id, item.cost)}
+                              className="flex-1 bg-white/5 hover:bg-white/10 font-bold uppercase tracking-widest text-[10px] border-l border-white/5 transition-colors"
+                           >
+                              Restock 
+                           </button>
+                        </div>
+                        )}
                      </div>
                   </div>
                </div>
-            ))
+               );
+            })
          )}
       </div>
     </div>

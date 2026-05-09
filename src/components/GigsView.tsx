@@ -103,7 +103,7 @@ export function GigsView({ gameState, setGameState, currentDate }: GigsViewProps
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
         {availableGigs.map(gig => {
-          const isBooked = bookedGigs.some(g => g.id === gig.id);
+          const isBooked = bookedGigs.some(g => g?.id === gig.id);
 
           return (
             <div key={gig.id} className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col relative overflow-hidden group hover:bg-white/10 transition-colors">

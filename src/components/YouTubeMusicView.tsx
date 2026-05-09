@@ -24,7 +24,7 @@ export function YouTubeMusicView({ gameState }: YouTubeMusicViewProps) {
         } else if (release.type === 'Album') {
             const albumData = release as Album;
             return albumData.trackIds.reduce((sum, tid) => {
-                const track = songs.find(s => s.id === tid);
+                const track = songs.find(s => s?.id === tid);
                 return sum + (track ? getSongYTMusicStreams(track) : 0);
             }, 0);
         }
@@ -217,7 +217,7 @@ export function YouTubeMusicView({ gameState }: YouTubeMusicViewProps) {
                         </div>
                         <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4 snap-x">
                             {[...videos].reverse().map((video) => {
-                                const song = songs.find(s => s.id === video.songId);
+                                const song = songs.find(s => s?.id === video.songId);
                                 return (
                                     <div key={video.id} className="flex flex-col w-[260px] md:w-[320px] snap-start shrink-0 group cursor-pointer">
                                         <div className="w-full aspect-video bg-[#212121] rounded-md overflow-hidden relative mb-3">

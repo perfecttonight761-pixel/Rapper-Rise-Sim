@@ -198,9 +198,9 @@ export function DashboardView({
                     <div className="text-[10px] uppercase font-bold text-white/50">{c.name}</div>
                     <div className="text-xs md:text-sm font-mono mt-1 flex flex-col md:flex-row md:items-baseline gap-1">
                       <span className={c.current >= c.required ? 'text-green-400 font-bold' : 'text-white'}>
-                         {c.format ? (c.current > 1000000 ? (c.current/1000000).toFixed(1)+'M' : c.current.toLocaleString()) : c.current}
+                         {c.format ? c.current.toLocaleString() : c.current}
                       </span>
-                      <span className="text-white/40 text-[10px] md:text-xs text-nowrap whitespace-nowrap">/ {c.format ? (c.required > 1000000 ? (c.required/1000000).toFixed(1)+'M' : c.required.toLocaleString()) : c.required}</span>
+                      <span className="text-white/40 text-[10px] md:text-xs text-nowrap whitespace-nowrap">/ {c.format ? c.required.toLocaleString() : c.required}</span>
                     </div>
                  </div>
                ));
@@ -345,8 +345,8 @@ export function DashboardView({
                               <div className="bg-black/40 p-3 rounded-xl border border-white/5">
                                  <span className="text-[10px] uppercase tracking-widest text-white/40">Streams</span>
                                  <div className="font-mono text-lg">
-                                    {isCurrent ? (Math.min(gameState?.stats?.streams || 0, reqs.streams) > 1000000 ? (Math.min(gameState?.stats?.streams || 0, reqs.streams)/1000000).toFixed(1)+'M' : Math.min(gameState?.stats?.streams || 0, reqs.streams).toLocaleString()) : isPast ? (reqs.streams > 1000000 ? (reqs.streams/1000000).toFixed(1)+'M' : reqs.streams.toLocaleString()) : 0} 
-                                    <span className="text-white/40 text-[10px] block lg:inline lg:ml-1">/ {reqs.streams > 1000000 ? (reqs.streams/1000000).toFixed(1)+'M' : reqs.streams.toLocaleString()}</span>
+                                    {isCurrent ? Math.min(gameState?.stats?.streams || 0, reqs.streams).toLocaleString() : isPast ? reqs.streams.toLocaleString() : 0} 
+                                    <span className="text-white/40 text-[10px] block lg:inline lg:ml-1">/ {reqs.streams.toLocaleString()}</span>
                                  </div>
                               </div>
                             )}
@@ -354,8 +354,8 @@ export function DashboardView({
                               <div className="bg-black/40 p-3 rounded-xl border border-white/5">
                                  <span className="text-[10px] uppercase tracking-widest text-white/40">Sales</span>
                                  <div className="font-mono text-lg">
-                                    {isCurrent ? (Math.min(gameState?.stats?.sales || 0, reqs.sales) > 1000000 ? (Math.min(gameState?.stats?.sales || 0, reqs.sales)/1000000).toFixed(1)+'M' : Math.min(gameState?.stats?.sales || 0, reqs.sales).toLocaleString()) : isPast ? (reqs.sales > 1000000 ? (reqs.sales/1000000).toFixed(1)+'M' : reqs.sales.toLocaleString()) : 0} 
-                                    <span className="text-white/40 text-[10px] block lg:inline lg:ml-1">/ {reqs.sales > 1000000 ? (reqs.sales/1000000).toFixed(1)+'M' : reqs.sales.toLocaleString()}</span>
+                                    {isCurrent ? Math.min(gameState?.stats?.sales || 0, reqs.sales).toLocaleString() : isPast ? reqs.sales.toLocaleString() : 0} 
+                                    <span className="text-white/40 text-[10px] block lg:inline lg:ml-1">/ {reqs.sales.toLocaleString()}</span>
                                  </div>
                               </div>
                             )}

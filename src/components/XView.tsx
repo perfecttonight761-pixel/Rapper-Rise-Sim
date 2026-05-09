@@ -393,7 +393,7 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
        const chartName = isAlbum ? 'Billboard 200' : 'Billboard Hot 100';
        const chartList = isAlbum ? charts.Global200Album : charts.RegionAmerica;
        
-       const rankData = chartList.find(c => c.id === release.id);
+       const rankData = chartList.find(c => c?.id === release.id);
        const rank = rankData ? chartList.indexOf(rankData) + 1 : null;
        
        if (daysSinceRelease > 0 && daysSinceRelease <= 14 && rank && rank <= 100) {
@@ -477,7 +477,7 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
                let mediaContent = undefined;
                
                if (playerNom.type !== 'Artist') {
-                 const release = gameState.releases.find(r => r.id === playerNom.id);
+                 const release = gameState.releases.find(r => r?.id === playerNom.id);
                  if (release?.coverImage) {
                    mediaContent = <div className="bg-black flex justify-center"><img src={release.coverImage} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div>;
                  }
@@ -503,11 +503,11 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
       if (isWinStage) {
          gameState.grammys.results.forEach((result, idx) => {
             if (result.winnerId) {
-               const winner = result.nominees.find(n => n.id === result.winnerId);
+               const winner = result.nominees.find(n => n?.id === result.winnerId);
                if (winner && winner.isPlayer) {
                   let mediaContent = undefined;
                   if (winner.type !== 'Artist') {
-                    const release = gameState.releases.find(r => r.id === winner.id);
+                    const release = gameState.releases.find(r => r?.id === winner.id);
                     if (release?.coverImage) {
                       mediaContent = <div className="bg-black flex justify-center"><img src={release.coverImage} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div>;
                     }

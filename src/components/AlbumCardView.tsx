@@ -38,7 +38,7 @@ export function AlbumCardView({ album, gameState, onClose }: AlbumCardViewProps)
   // Find all tracks
   const tracks: Song[] = [];
   album.trackIds.forEach(id => {
-     const t = gameState.releases.find(rel => rel.id === id);
+     const t = gameState.releases.find(rel => rel?.id === id);
      if (t && t.type === 'Single') tracks.push(t as Song);
   });
 

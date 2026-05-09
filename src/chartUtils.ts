@@ -145,7 +145,7 @@ export const computeCharts = (gameState: GameState) => {
        const chartLimit = chartKey.includes('200') ? 200 : 100;
        
        chartsWithMovement[chartKey] = currList.map((item, index) => {
-          const prevIndex = prevList.findIndex((p: any) => p.id === item.id);
+          const prevIndex = prevList.findIndex((p: any) => p?.id === item.id);
           let movement = 0; 
           let isNew = false;
           
@@ -155,7 +155,7 @@ export const computeCharts = (gameState: GameState) => {
              movement = prevIndex - index;
           }
 
-          const hashStr = item.id + item.title;
+          const hashStr = item?.id + item?.title;
           let hash = 0;
           for(let i = 0; i < hashStr.length; i++) hash = Math.imul(31, hash) + hashStr.charCodeAt(i) | 0;
           const randomWeekVal = Math.abs(hash % 20) + 1;

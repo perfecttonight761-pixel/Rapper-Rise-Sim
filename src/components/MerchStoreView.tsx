@@ -109,7 +109,7 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
               ...prev.stats,
               money: (prev.stats?.money || 0) - totalCost
            },
-           merch: (prev.merch || []).map(m => m.id === merchId ? { ...m, stock: m.stock + qty } : m)
+           merch: (prev.merch || []).map(m => m?.id === merchId ? { ...m, stock: m.stock + qty } : m)
         };
      });
      
@@ -238,7 +238,7 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
                               <div className="absolute inset-0 flex flex-col justify-center items-center bg-[#151515]">
                                  <div className="absolute top-4 left-4 z-10 flex flex-col items-start bg-black/40 p-2 rounded backdrop-blur">
                                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#d2ba96]">{gameState.artist?.name}</span>
-                                     <span className="text-xl font-black uppercase tracking-tighter text-[#d2ba96] leading-none mt-1">{linkedRelease ? gameState.releases.find(r => r.id === linkedRelease)?.title : 'Release Title'}</span>
+                                     <span className="text-xl font-black uppercase tracking-tighter text-[#d2ba96] leading-none mt-1">{linkedRelease ? gameState.releases.find(r => r?.id === linkedRelease)?.title : 'Release Title'}</span>
                                  </div>
                                  <div className="relative mt-8 mx-auto w-3/4 aspect-square flex items-center justify-center">
                                      <div 
@@ -316,7 +316,7 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
             </div>
          ) : (
             gameState.merch.map((item) => {
-               const repRelease = gameState.releases.find(r => r.id === item.releaseId);
+               const repRelease = gameState.releases.find(r => r?.id === item.releaseId);
                return (
                <div key={item.id} className="bg-white/5 border border-white/5 rounded-2xl overflow-hidden group flex flex-col">
                   

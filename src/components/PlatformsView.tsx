@@ -78,7 +78,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
     
     let totalDailyPlatStreams = 0;
     
-    publishedReleases.forEach(r => {
+    songs.forEach(r => {
        const dailyTotal = r.lastDailyStreams?.total || 0;
        totalDailyPlatStreams += (dailyTotal * platMux[plat]);
     });
@@ -87,7 +87,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
     // Total monthly streams = daily * 28. Monthly listeners = (daily * 28) / 4.5 ≈ daily * 6.2
     const activeListeners = totalDailyPlatStreams * 6.2;
 
-    const totalPlatStreams = publishedReleases.reduce((sum, r) => sum + getPlatformStreams(r, plat), 0);
+    const totalPlatStreams = songs.reduce((sum, r) => sum + getPlatformStreams(r, plat), 0);
     // Logarithmic scale for legacy catalog to prevent massive accumulation over years from giving bloated ML
     const legacyListeners = totalPlatStreams > 0 ? (Math.pow(totalPlatStreams, 0.65) * 0.8) : 0; 
     
@@ -114,7 +114,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
     const listeners = calculateListeners('spotify');
     const topSongs = getTopSongs('spotify', 10);
     const popularRelease = artistPickId 
-        ? standaloneReleases.find(r => r.id === artistPickId) 
+        ? standaloneReleases.find(r => r?.id === artistPickId) 
         : getPopularRelease('spotify');
 
     return (
@@ -369,7 +369,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                  {/* Tracklist */}
                  <div className="w-full flex flex-col gap-1">
                     {(selectedSpotifyRelease.type === 'Album' 
-                      ? (selectedSpotifyRelease as Album).trackIds.map(tid => gameState.releases.find(r => r.id === tid)) 
+                      ? (selectedSpotifyRelease as Album).trackIds.map(tid => gameState.releases.find(r => r?.id === tid)) 
                       : [selectedSpotifyRelease]).map((t, i) => t && (
                        <div key={t.id || i} className="flex items-center justify-between py-2 px-2 hover:bg-white/10 rounded-md group cursor-pointer transition-colors">
                           <div className="flex items-center gap-4">
@@ -534,7 +534,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                     <h3 className="text-xl font-bold border-b border-zinc-200 pb-4 mb-4">Tracks</h3>
                     <div className="flex flex-col">
                        {(selectedAppleRelease.type === 'Album' 
-                         ? (selectedAppleRelease as Album).trackIds.map(tid => gameState.releases.find(r => r.id === tid)) 
+                         ? (selectedAppleRelease as Album).trackIds.map(tid => gameState.releases.find(r => r?.id === tid)) 
                          : [selectedAppleRelease]).map((t, i) => t && (
                           <div key={t.id || i} className="flex items-center justify-between py-3.5 border-b border-zinc-100 group">
                              <div className="flex items-center gap-4">
@@ -604,7 +604,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
     const topSongs = getTopSongs('amazonMusic', 10);
     const amazonAlbums = [...albums].sort((a, b) => getPlatformStreams(b, 'amazonMusic') - getPlatformStreams(a, 'amazonMusic'));
     const amazonSingles = [...songs].sort((a, b) => new Date(b.releaseDate!).getTime() - new Date(a.releaseDate!).getTime());
-    const highlightRelease = amazonHighlightId ? publishedReleases.find(r => r.id === amazonHighlightId) : getPopularRelease('amazonMusic');
+    const highlightRelease = amazonHighlightId ? publishedReleases.find(r => r?.id === amazonHighlightId) : getPopularRelease('amazonMusic');
     const followersText = Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short", maximumFractionDigits: 1 }).format(calculateListeners('amazonMusic'));
 
     return (
@@ -819,7 +819,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                      <div className="flex flex-col mb-12">
                         {(selectedAmazonRelease as any).trackIds ? (
                            ((selectedAmazonRelease as any).trackIds as string[]).map((id, index) => {
-                              const song = songs.find(s => s.id === id);
+                              const song = songs.find(s => s?.id === id);
                               if (!song) return null;
                               return (
                                  <div key={id} className="flex items-center gap-4 p-4 hover:bg-white/5 rounded-lg group cursor-pointer border-b border-white/5 last:border-0">

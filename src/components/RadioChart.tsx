@@ -128,7 +128,7 @@ export function RadioChart({ gameState, onBack }: { gameState: GameState, onBack
 
               return (
                 <div 
-                  key={song.id || idx} 
+                  key={song?.id || idx} 
                   className={`flex items-center gap-8 px-8 py-6 transition-all group hover:bg-white/[0.02] ${isPlayer ? 'bg-yellow-500/5' : ''}`}
                 >
                   <div className="w-12 flex flex-col items-center justify-center">

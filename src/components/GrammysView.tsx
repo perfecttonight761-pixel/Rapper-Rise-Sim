@@ -263,7 +263,7 @@ export function GrammysView({ gameState, setGameState }: GrammysViewProps) {
                  <div key={idx} className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
                     <div className="bg-white/5 p-6 border-b border-white/10 flex justify-between items-center">
                        <h3 className="text-xl font-black italic tracking-tighter text-yellow-500 uppercase">{result.category}</h3>
-                       {grammys.stage === 'Results' && result.winnerId && result.nominees.find(n => n.id === result.winnerId)?.isPlayer && (
+                       {grammys.stage === 'Results' && result.winnerId && result.nominees.find(n => n?.id === result.winnerId)?.isPlayer && (
                           <div className="bg-yellow-500 text-black px-2 py-1 rounded text-[10px] font-black uppercase flex items-center gap-1 animate-pulse">
                              <Trophy className="w-3 h-3" />
                              Artist Won
@@ -272,8 +272,8 @@ export function GrammysView({ gameState, setGameState }: GrammysViewProps) {
                     </div>
                     <div className="p-4 space-y-2">
                        {result.nominees.map((nominee, nIdx) => {
-                          const isWinner = grammys.stage === 'Results' && result.winnerId === nominee.id;
-                          const release = gameState.releases.find(r => r.id === nominee.id);
+                          const isWinner = grammys.stage === 'Results' && result.winnerId === nominee?.id;
+                          const release = gameState.releases.find(r => r?.id === nominee?.id);
                           const fallbackImage = ARTIST_IMAGES[nominee.artist as string] || `https://i.pravatar.cc/200?u=${encodeURIComponent(nominee.artist)}`;
                           const coverImage = nominee.type === 'Artist' ? (nominee.isPlayer ? gameState.artist?.image : fallbackImage) : (release?.coverImage || nominee.coverImage || fallbackImage);
                           

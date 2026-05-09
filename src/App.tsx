@@ -80,7 +80,7 @@ export default function App() {
         
         setSaveProfiles(prev => {
           let updated = [...prev];
-          const existIdx = updated.findIndex(s => s.id === currentSaveId);
+          const existIdx = updated.findIndex(s => s?.id === currentSaveId);
           if (existIdx >= 0) {
             updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: gameState.artist?.name || 'Unknown' };
           } else {
@@ -287,25 +287,25 @@ export default function App() {
 
             // --- DECAY LOGIC REFINED ---
             // 1. Initial Hype (Steep drop-off in the first 2-4 weeks)
-            const initialHypeHalfLife = 10 + (longevityMultiplier * 2); // e.g. 13 to 20 days
+            const initialHypeHalfLife = 20 + (longevityMultiplier * 3); // Longer hype: 24 to 35 days
             let initialHypeCurve = Math.exp(-daysSinceRelease / initialHypeHalfLife);
             
             // 2. Secondary Run (Slower decay for the next few months)
-            const secondaryHalfLife = 45 + (longevityMultiplier * 10); // e.g. 60 to 95 days
-            let secondaryCurve = 0.4 * Math.exp(-daysSinceRelease / secondaryHalfLife);
+            const secondaryHalfLife = 60 + (longevityMultiplier * 15); // e.g. 80 to 135 days
+            let secondaryCurve = 0.5 * Math.exp(-daysSinceRelease / secondaryHalfLife);
             
             // Mass Streaming Debut Boost (Fanbase Power)
             // Fanbase streams massive numbers in the first week, especially first 3 days, irrespective of trend.
-            if (daysSinceRelease <= 7) {
+            if (daysSinceRelease <= 21) {
                // Max fandomPower ~33 at level 99 and 100% popularity in all regions
                const fandomPower = 1 + (popBoost / 1.2) + (artistLevel / 4);
-               // Smooth curve dropping from 1.0 to close to 0 over a week
-               const debutCurve = Math.exp(-(daysSinceRelease * daysSinceRelease) / 10); 
+               // Smooth curve dropping from 1.0 to close to 0 over 3 weeks
+               const debutCurve = Math.exp(-(daysSinceRelease) / 7); 
                
                let debutMultiplier = fandomPower * debutCurve;
                if (isBSide && currentTrend !== 'Mega Hit' && currentTrend !== 'Hit') {
                    // B-sides get a smaller debut push
-                   debutMultiplier *= 0.4;
+                   debutMultiplier *= 0.5;
                }
                initialHypeCurve *= Math.max(1, debutMultiplier);
             }
@@ -410,11 +410,16 @@ export default function App() {
             const salesRev = (newDigitalSales * 0.99 + newPhysicalSales * (isSong ? 4.99 : 14.99)) * 0.25; // 25% artist cut
             const streamingRev = dStreamsTotal * 0.00007; // Extra hard payout: $0.00007 per stream (100k streams = $7)
             
-            revenue += salesRev + streamingRev;
+            revenue += salesRev;
+            if (isSong) {
+                revenue += streamingRev;
+            }
             
             // Occasional viral spike (1% chance per day)
             // (Moved to top before dStreamsTotal calculation)
-            dailyStreams += dStreamsTotal;
+            if (isSong) {
+                dailyStreams += dStreamsTotal;
+            }
 
             if (release.type === 'Single' && dStreamsTotal > maxSongStreams) {
                 maxSongStreams = dStreamsTotal;
@@ -548,7 +553,7 @@ export default function App() {
       const updatedMerch = (gameState.merch || []).map(m => {
          if (m.sold >= m.stock) return m;
 
-         const linkedRelease = updatedReleases.find(r => r.id === m.releaseId);
+         const linkedRelease = updatedReleases.find(r => r?.id === m.releaseId);
          const pop = Math.max(1, (newAmériquePop + newLatinPop + newEuropePop) / 3);
          const levelMult = 1 + (artistLevel * 0.8);
          
@@ -628,7 +633,7 @@ export default function App() {
 
       let dailyYoutubeViews = 0;
       const updatedVideos = (gameState.videos || []).map(video => {
-         const linkedSong = updatedReleasesWithSales.find(r => r.id === video.songId) as Song;
+         const linkedSong = updatedReleasesWithSales.find(r => r?.id === video.songId) as Song;
          let ytDaily = 0;
          const videoPubDate = new Date(video.publishDate);
          const daysSincePublished = Math.max(0, Math.floor((currentDateObj.getTime() - videoPubDate.getTime()) / (1000 * 3600 * 24)));
@@ -732,7 +737,7 @@ export default function App() {
                  
                  // Update total awards count if player won
                  const playerWins = nextGrammys.results.filter(cat => {
-                    const winnerNominee = cat.nominees.find(n => n.id === cat.winnerId);
+                    const winnerNominee = cat.nominees.find(n => n?.id === cat.winnerId);
                     return winnerNominee?.isPlayer;
                  }).length;
                  
@@ -781,7 +786,7 @@ export default function App() {
         let newCustomTweets = [...(prev.artist?.socialProfile?.customTweets || [])];
         if (currentGrammys.stage === 'Nominations' && nextGrammys.stage === 'Ceremony') {
            const winningCats = nextGrammys.results.filter(cat => {
-              const winnerNominee = cat.nominees.find(n => n.id === cat.winnerId);
+              const winnerNominee = cat.nominees.find(n => n?.id === cat.winnerId);
               return winnerNominee?.isPlayer;
            });
            totalPlayerWinsAtCeremony = winningCats.length;
@@ -818,7 +823,7 @@ export default function App() {
             let isModified = false;
             
             Object.keys(charts).forEach(chartName => {
-              const entryInChart = charts[chartName as keyof typeof charts].find((c: any) => c.id === r.id);
+              const entryInChart = charts[chartName as keyof typeof charts].find((c: any) => c?.id === r.id);
               if (entryInChart) {
                   isModified = true;
                   const displayChartName = chartName === 'Hot100' ? 'Billboard Hot 100™' :
@@ -1055,7 +1060,7 @@ export default function App() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             {[1, 2, 3].map(slotNum => {
                const slotId = `slot_${slotNum}`;
-               const profile = saveProfiles.find(p => p.id === slotId);
+               const profile = saveProfiles.find(p => p?.id === slotId);
                
                return (
                  <div key={slotId} className="bg-[#111] border border-white/10 rounded-[2rem] p-6 relative overflow-hidden group hover:border-purple-500/30 transition-all flex flex-col">
@@ -1093,7 +1098,7 @@ export default function App() {
                                         localStorage.setItem('musician_simulator_last_save_id', slotId);
                                         setSaveProfiles(prev => {
                                           let updated = [...prev];
-                                          const existIdx = updated.findIndex(s => s.id === slotId);
+                                          const existIdx = updated.findIndex(s => s?.id === slotId);
                                           if (existIdx >= 0) {
                                             updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: gameState.artist?.name || 'Unknown' };
                                           } else {
@@ -1123,7 +1128,7 @@ export default function App() {
                                    localStorage.removeItem('musician_simulator_last_save_id');
                                  }
                                  setSaveProfiles(prev => {
-                                   const updated = prev.filter(p => p.id !== slotId);
+                                   const updated = prev.filter(p => p?.id !== slotId);
                                    localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
                                    return updated;
                                  });
@@ -1154,7 +1159,7 @@ export default function App() {
                                       localStorage.setItem('musician_simulator_last_save_id', slotId);
                                       setSaveProfiles(prev => {
                                         let updated = [...prev];
-                                        const existIdx = updated.findIndex(s => s.id === slotId);
+                                        const existIdx = updated.findIndex(s => s?.id === slotId);
                                         if (existIdx >= 0) {
                                           updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: gameState.artist?.name || 'Unknown' };
                                         } else {

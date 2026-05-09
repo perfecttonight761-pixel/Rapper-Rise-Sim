@@ -25,8 +25,8 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
   const albums = eligibleReleases.filter(r => r.type === 'Album') as Album[];
   albums.forEach(a => {
     a.trackIds.forEach(tid => {
-       const s = gameState.releases.find(rel => rel.id === tid) as Song;
-       if (s && !allSongs.find(existing => existing.id === s.id)) {
+       const s = gameState.releases.find(rel => rel?.id === tid) as Song;
+       if (s && !allSongs.find(existing => existing?.id === s.id)) {
           allSongs.push(s);
        }
     });
@@ -50,7 +50,7 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
 
   const handleUpload = () => {
     if (!uploadTrackId) return;
-    const song = allSongs.find(s => s.id === uploadTrackId);
+    const song = allSongs.find(s => s?.id === uploadTrackId);
     if (!song) return;
     
     if (gameState.stats.money < uploadBudget) {
@@ -252,7 +252,7 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
                            if (videoSort === 'oldest') return new Date(a.publishDate).getTime() - new Date(b.publishDate).getTime();
                            return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
                         }).map(video => {
-                           const song = allSongs.find(s => s.id === video.songId);
+                           const song = allSongs.find(s => s?.id === video.songId);
                            return (
                               <div key={video.id} className="flex gap-3 p-3">
                                  <div className="w-40 aspect-video bg-zinc-800 rounded-lg overflow-hidden shrink-0 relative">
@@ -306,14 +306,14 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
             )}
 
             {activeTab === 'releases' && selectedReleaseId && (() => {
-               const release = publishedReleases.find(r => r.id === selectedReleaseId);
+               const release = publishedReleases.find(r => r?.id === selectedReleaseId);
                if (!release) return null;
                
                let releaseTracks: Song[] = [];
                let totalViews = 0;
                if (release.type === 'Album') {
                   const album = release as Album;
-                  releaseTracks = album.trackIds.map(tid => allSongs.find(s => s.id === tid)).filter(Boolean) as Song[];
+                  releaseTracks = album.trackIds.map(tid => allSongs.find(s => s?.id === tid)).filter(Boolean) as Song[];
                } else {
                   releaseTracks = [release as Song];
                }
@@ -418,7 +418,7 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
                   <div className="mb-4">
                      <label className="block text-sm font-medium text-white/60 mb-2">Auto-Generated Title</label>
                      <div className="bg-[#0f0f0f] p-3 rounded-lg border border-white/10 text-white/80 font-medium">
-                        {gameState.artist?.name} - {allSongs.find(s => s.id === uploadTrackId)?.title} (Official Music Video)
+                        {gameState.artist?.name} - {allSongs.find(s => s?.id === uploadTrackId)?.title} (Official Music Video)
                      </div>
                   </div>
                )}

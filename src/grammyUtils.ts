@@ -38,7 +38,7 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
     if (type === 'Artist' && sub.workId === 'artist') {
        return { id: gameState.artist?.name || 'Player', title: undefined, artist: gameState.artist?.name || 'Player', isPlayer: true, type: 'Artist' as const };
     }
-    const release = playerReleases.find(r => r.id === sub.workId && (type === 'Single' ? r.type === 'Single' : r.type === 'Album'));
+    const release = playerReleases.find(r => r?.id === sub.workId && (type === 'Single' ? r.type === 'Single' : r.type === 'Album'));
     if (release) {
        return { id: release.id, title: release.title, artist: gameState.artist?.name || 'Player', isPlayer: true, type };
     }
@@ -112,7 +112,7 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
     // Valuation function - strict
     const getValuation = (nom: GrammysNominee) => {
        if (nom.isPlayer) {
-          const release = gameState.releases.find(r => r.id === nom.id);
+          const release = gameState.releases.find(r => r?.id === nom.id);
           if (nom.type === 'Artist') {
              return gameState.stats.streams / 3000000 + (gameState.artist?.level || 0) * 10;
           }
@@ -125,7 +125,7 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
           const npc = NPC_ARTISTS.find(n => n.name === nom.artist);
           const base = npc?.basePoints || 100000;
           if (nom.type === 'Artist') return base / 1000;
-          const npcItem = [...npcSingles, ...npcAlbums].find(i => i.id === nom.id);
+          const npcItem = [...npcSingles, ...npcAlbums].find(i => i?.id === nom.id);
           const points = npcItem?.points || 100000;
           // Random quality for NPCs [7-11]
           const quality = 7 + (nom.id.charCodeAt(0) % 5); 
@@ -140,7 +140,7 @@ export function generateNominees(gameState: GameState, year: number): GrammysCat
     const playerNoms = scoredPool.filter(p => p.isPlayer).sort((a, b) => b.score - a.score);
     if (playerNoms.length > 1) {
        // Keep the first one, remove the rest from scoredPool
-       const disallowedIds = new Set(playerNoms.slice(1).map(p => p.id));
+       const disallowedIds = new Set(playerNoms.slice(1).map(p => p?.id));
        scoredPool = scoredPool.filter(p => !disallowedIds.has(p.id));
     }
 
@@ -166,7 +166,7 @@ export function pickWinner(categoryResult: GrammysCategoryResult, gameState: Gam
   const getNomineeFinalScore = (nom: GrammysNominee) => {
      let score = 0;
      if (nom.isPlayer) {
-        const release = gameState.releases.find(r => r.id === nom.id);
+        const release = gameState.releases.find(r => r?.id === nom.id);
         if (nom.type === 'Artist') {
            score = (gameState.stats.streams / 75000000) + (gameState.artist?.level || 0) * 8;
         } else if (release) {
@@ -193,11 +193,13 @@ export function pickWinner(categoryResult: GrammysCategoryResult, gameState: Gam
      return score + juryRandom;
   };
 
+  if (!nominees || nominees.length === 0) return '';
+
   const scored = nominees.map(nom => ({
     id: nom.id,
     finalScore: getNomineeFinalScore(nom)
   }));
 
   const winner = scored.sort((a, b) => b.finalScore - a.finalScore)[0];
-  return winner.id;
+  return winner?.id || '';
 }

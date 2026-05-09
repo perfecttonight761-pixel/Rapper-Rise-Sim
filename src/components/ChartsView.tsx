@@ -30,13 +30,11 @@ export function ChartsView({ gameState, onClose }: ChartsViewProps) {
   ] as const;
 
   const currentData = chartsData.charts[activeChart] || [];
-  const currentTabInfo = tabs.find(t => t.id === activeChart);
+  const currentTabInfo = tabs.find(t => t?.id === activeChart);
   
   const isAlbumChart = activeChart === 'Global200Album';
   const formatStat = (val: number) => {
-     if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
-     if (val >= 1000) return (val / 1000).toFixed(1) + 'K';
-     return Math.floor(val).toString();
+     return Math.floor(val).toLocaleString();
   };
   
   // Format the date like "MAY 2, 2026"
@@ -114,10 +112,10 @@ export function ChartsView({ gameState, onClose }: ChartsViewProps) {
              {currentData.map((item, index) => {
                 const isPlayer = item.isPlayer;
                 const isFirst = index === 0;
-                const label = isPlayer ? 'INDEPENDENT' : (item.id.length % 2 === 0 ? 'REPUBLIC' : 'ISLAND');
+                const label = isPlayer ? 'INDEPENDENT' : (item?.id?.length % 2 === 0 ? 'REPUBLIC' : 'ISLAND');
 
                 return (
-                  <div key={`${item.id}-${index}`} className="flex items-start bg-white w-full pr-4 py-4 relative group border-b border-gray-100">
+                  <div key={`${item?.id}-${index}`} className="flex items-start bg-white w-full pr-4 py-4 relative group border-b border-gray-100">
                      {/* Rank and Movement */}
                      <div className="w-16 md:w-20 shrink-0 flex flex-col items-center justify-start pt-2">
                         {isAlbumChart && isFirst ? (

@@ -23,14 +23,17 @@ export const computeCharts = (gameState: GameState) => {
 
     const generatePlayerItems = (isPrevWeek: boolean) => {
       return publishedReleases.map(r => {
-        // Correctly selection between current week and previous week data
-        let weeklyStreams = isPrevWeek ? (r.lastWeekStreams ?? 0) : (r.currentWeekStreams ?? 0);
-        let weeklySales = isPrevWeek ? (r.lastWeekSales ?? 0) : (r.currentWeekSales ?? 0);
-        let weeklyRadio = isPrevWeek ? (r.lastWeekRadio ?? 0) : (r.currentWeekRadio ?? 0);
+        // Extrapolate current week's partial data to a full 7 days so it stays competitive with NPCs
+        let daysIntoWeek = gameState.time.daysPassed % 7;
+        if (daysIntoWeek === 0) daysIntoWeek = 7;
+
+        let weeklyStreams = isPrevWeek ? (r.lastWeekStreams ?? 0) : ((r.currentWeekStreams ?? 0) / daysIntoWeek) * 7;
+        let weeklySales = isPrevWeek ? (r.lastWeekSales ?? 0) : ((r.currentWeekSales ?? 0) / daysIntoWeek) * 7;
+        let weeklyRadio = isPrevWeek ? (r.lastWeekRadio ?? 0) : ((r.currentWeekRadio ?? 0) / daysIntoWeek) * 7;
 
         // If it's the current week and we don't have accumulated stats yet (very new release), 
         // fallback to estimating from daily
-        if (!isPrevWeek && !r.currentWeekStreams && r.lastDailyStreams?.total) {
+        if (!isPrevWeek && (!r.currentWeekStreams || r.currentWeekStreams === 0) && r.lastDailyStreams?.total) {
              weeklyStreams = r.lastDailyStreams.total * 7;
              weeklySales = r.sales?.total || 0;
              weeklyRadio = r.currentWeekRadio || 0;

@@ -49,13 +49,40 @@ export default function App() {
     // Load saves index
     try {
       const idx = localStorage.getItem('musician_simulator_saves_index');
-      if (idx) setSaveProfiles(JSON.parse(idx));
+      if (idx) {
+        const parsed = JSON.parse(idx);
+        // Only keep slot format saves in profile
+        const filtered = parsed.filter((p: any) => p.id && p.id.startsWith('slot_'));
+        setSaveProfiles(filtered);
+        
+        // Update the index if we removed old format entries
+        if (filtered.length !== parsed.length) {
+            localStorage.setItem('musician_simulator_saves_index', JSON.stringify(filtered));
+        }
+      }
     } catch {}
+
+    // Cleanup old orphan auto-saves (created by previous version buggy code `save_{Date.now()}`)
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('musician_simulator_save_')) {
+          const saveId = key.replace('musician_simulator_save_', '');
+          if (!saveId.startsWith('slot_')) {
+             keysToRemove.push(key);
+          }
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch (e) {
+      console.error("Cleanup failed", e);
+    }
 
     // Attempt to load last active save from localStorage on mount
     try {
       const lastId = localStorage.getItem('musician_simulator_last_save_id');
-      if (lastId) {
+      if (lastId && lastId.startsWith('slot_')) {
         const saved = localStorage.getItem('musician_simulator_save_' + lastId);
         if (saved) {
           const json = JSON.parse(saved);
@@ -65,6 +92,9 @@ export default function App() {
             setScreen('dashboard');
           }
         }
+      } else if (lastId) {
+         // Auto-discard if last loaded save was an old buggy one
+         localStorage.removeItem('musician_simulator_last_save_id');
       }
     } catch (e) {
       console.error("Failed to load auto-save", e);
@@ -129,7 +159,7 @@ export default function App() {
         try {
           const json = JSON.parse(event.target?.result as string);
           if (json.version) {
-            const newId = 'save_' + Date.now();
+            const newId = 'slot_auto';
             setCurrentSaveId(newId);
             setGameState(json);
             setScreen('dashboard');
@@ -854,7 +884,10 @@ export default function App() {
                              newChartHistory[displayChartName].peakDate = currentDateObj.toISOString();
                              newChartHistory[displayChartName].weeksAtPeak = 1;
                          } else if (currentPosition === newChartHistory[displayChartName].peakPos) {
-                             newChartHistory[displayChartName].weeksAtPeak = (newChartHistory[displayChartName].weeksAtPeak || 1) + 1;
+                             const fallback = newChartHistory[displayChartName].peakPos === 1 
+                                ? Math.max(1, newChartHistory[displayChartName].weeksOnChart - 1) 
+                                : 1;
+                             newChartHistory[displayChartName].weeksAtPeak = (newChartHistory[displayChartName].weeksAtPeak ?? fallback) + 1;
                          }
                      } else {
                          // Even mid-week, if they somehow reach a higher peak (shouldn't happen on static days but just in case)
@@ -929,7 +962,7 @@ export default function App() {
     
     // Fallback if not using slots:
     if (!currentSaveId || !currentSaveId.startsWith('slot_')) {
-        const newId = 'save_' + Date.now();
+        const newId = 'slot_auto';
         setCurrentSaveId(newId);
     }
     

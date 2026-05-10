@@ -91,8 +91,9 @@ export default function App() {
         });
       } catch (e) {
         console.error("Failed to auto-save", e);
+        setIsAutoAdvancing(false);
         if (e instanceof DOMException && e.code === 22) { // QuotaExceededError
-           alert("Storage quota exceeded! Please delete an older save slot from the Dashboard to continue saving.");
+           alert("Storage quota exceeded! Auto-advance has stopped. Please delete an older save slot from the save/load menu to continue saving.");
         }
       }
     }
@@ -838,10 +839,12 @@ export default function App() {
                        debutDate: currentDateObj.toISOString(),
                        peakPos: entryInChart.peakPos || entryInChart.peak || (entryInChart.isNew ? entryInChart.lastPos : 1),
                        peakDate: currentDateObj.toISOString(),
-                       weeksOnChart: entryInChart.weeksOnChart || 1
+                       weeksOnChart: 1
                      };
                   } else {
-                     newChartHistory[displayChartName].weeksOnChart = (newChartHistory[displayChartName].weeksOnChart || 0) + 1;
+                     if (intermediateGameState.time.daysPassed > 0 && intermediateGameState.time.daysPassed % 7 === 0) {
+                         newChartHistory[displayChartName].weeksOnChart = (newChartHistory[displayChartName].weeksOnChart || 0) + 1;
+                     }
                      const currentPeak = entryInChart.peakPos || entryInChart.peak || entryInChart.lastPos;
                      if (currentPeak < newChartHistory[displayChartName].peakPos) {
                          newChartHistory[displayChartName].peakPos = currentPeak;

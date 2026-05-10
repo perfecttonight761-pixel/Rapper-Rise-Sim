@@ -123,7 +123,12 @@ export const NPC_ARTISTS = [
   { name: 'Mitski', basePoints: 220000, type: 'Pop' },
   { name: 'Frank Ocean', basePoints: 300000, type: 'R&B' },
   { name: 'Sabrina Carpenter', basePoints: 340000, type: 'Pop' },
-  { name: 'Chappell Roan', basePoints: 320000, type: 'Pop' }
+  { name: 'Chappell Roan', basePoints: 320000, type: 'Pop' },
+  { name: 'PinkPantheress', basePoints: 240000, type: 'Pop' },
+  { name: 'Zara Larsson', basePoints: 210000, type: 'Pop' },
+  { name: 'Tate McRae', basePoints: 310000, type: 'Pop' },
+  { name: 'ILLIT', basePoints: 280000, type: 'Kpop' },
+  { name: 'KATSEYE', basePoints: 250000, type: 'Pop' }
 ];
 
 export const NPC_SONG_TITLES = [
@@ -175,6 +180,12 @@ export const generateNPCSongs = (multiplier: number = 1, seed: number = 1, exclu
     const disco = ARTIST_DISCOGRAPHY || {};
     
     for (let j = 0; j < songsToRelease; j++) {
+      // Add a long-term cycle so songs don't stay at the top forever (e.g. 5-15 weeks cycle)
+      const cycleLength = 8 + (j % 10);
+      const phase = (seed + i * 5 + j * 11) / cycleLength;
+      // cycleMod goes from 0.1 to 1.0 depending on the week
+      const cycleMod = 0.15 + 0.85 * ((Math.sin(phase) + 1) / 2);
+
       const basePseudo = Math.floor(Math.abs(Math.sin((i + 1) * (j + 1))) * 50000);
       const weeklyFluctuation = Math.floor(Math.abs(Math.cos(seed * (i + j + 1))) * 15000);
       
@@ -190,7 +201,7 @@ export const generateNPCSongs = (multiplier: number = 1, seed: number = 1, exclu
         artist: npc.name,
         artistGenre: npc.type,
         coverImage,
-        points: Math.floor((npc.basePoints * 1.25 * (1 - j * 0.15) + basePseudo + weeklyFluctuation) * multiplier),
+        points: Math.floor((npc.basePoints * 1.25 * (1 - j * 0.15) * cycleMod + basePseudo * cycleMod + weeklyFluctuation) * multiplier),
         type: 'Single' as const,
         isPlayer: false
       });
@@ -207,6 +218,10 @@ export const generateNPCAlbums = (multiplier: number = 1, seed: number = 1, excl
     const disco = ARTIST_DISCOGRAPHY || {};
 
     for (let j = 0; j < albumsToRelease; j++) {
+      const cycleLength = 10 + (j % 8);
+      const phase = (seed + i * 4 + j * 13) / cycleLength;
+      const cycleMod = 0.2 + 0.8 * ((Math.sin(phase) + 1) / 2);
+
       const basePseudo = Math.floor(Math.abs(Math.cos((i + 1) * (j + 1))) * 30000);
       const weeklyFluctuation = Math.floor(Math.abs(Math.sin(seed * (i + j + 1))) * 10000);
       
@@ -222,7 +237,7 @@ export const generateNPCAlbums = (multiplier: number = 1, seed: number = 1, excl
         artist: npc.name,
         artistGenre: npc.type,
         coverImage,
-        points: Math.floor((npc.basePoints * 0.8 * (1 - j * 0.2) + basePseudo + weeklyFluctuation) * multiplier),
+        points: Math.floor((npc.basePoints * 0.8 * (1 - j * 0.2) * cycleMod + basePseudo * cycleMod + weeklyFluctuation) * multiplier),
         type: 'Album' as const,
         isPlayer: false
       });

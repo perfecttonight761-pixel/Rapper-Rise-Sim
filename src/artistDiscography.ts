@@ -8276,5 +8276,59 @@ export const ARTIST_DISCOGRAPHY: Record<string, {tracks: {title: string, cover: 
         "cover": "https://cdn-images.dzcdn.net/images/cover/377470fb0413c43587769a7dea37f691/1000x1000-000000-80-0-0.jpg"
       }
     ]
+  },
+  "PinkPantheress": {
+    "tracks": [
+      { "title": "Boy's a liar", "cover": "https://cdn-images.dzcdn.net/images/cover/f571cb780b339ec087201b1cea53c3d9/1000x1000-000000-80-0-0.jpg" },
+      { "title": "Just for me", "cover": "https://cdn-images.dzcdn.net/images/cover/e6f3afd8a5c3d8ea797f458694166e47/1000x1000-000000-80-0-0.jpg" },
+      { "title": "Pain", "cover": "https://cdn-images.dzcdn.net/images/cover/68b4e986958b17f05b062ffa8d7ae114/1000x1000-000000-80-0-0.jpg" },
+      { "title": "Break it off", "cover": "https://cdn-images.dzcdn.net/images/cover/b5021d5a88c44071a97416c65d4dbdd9/1000x1000-000000-80-0-0.jpg" }
+    ],
+    "albums": [
+      { "title": "Heaven knows", "cover": "https://cdn-images.dzcdn.net/images/cover/d0bed55a0efb3c5c3ddb3dacda67d9b3/1000x1000-000000-80-0-0.jpg" }
+    ]
+  },
+  "Zara Larsson": {
+    "tracks": [
+      { "title": "Lush Life", "cover": "https://cdn-images.dzcdn.net/images/cover/290abe93bdda84bb8b170f30a4998c4c/1000x1000-000000-80-0-0.jpg" },
+      { "title": "Symphony", "cover": "https://cdn-images.dzcdn.net/images/cover/c3924fb721c024dfebc8e4b137440fde/1000x1000-000000-80-0-0.jpg" },
+      { "title": "Never Forget You", "cover": "https://cdn-images.dzcdn.net/images/cover/8a5d4fa5c1b97100bf128909d766f06f/1000x1000-000000-80-0-0.jpg" },
+      { "title": "Ruin My Life", "cover": "https://cdn-images.dzcdn.net/images/cover/1a8f399e9ddbb8ec2530232c0dfd953f/1000x1000-000000-80-0-0.jpg" }
+    ],
+    "albums": [
+      { "title": "Venus", "cover": "https://cdn-images.dzcdn.net/images/cover/b84e3b2ac2e7a2f32cf633402cd8994d/1000x1000-000000-80-0-0.jpg" }
+    ]
+  },
+  "Tate McRae": {
+    "tracks": [
+      { "title": "greedy", "cover": "https://cdn-images.dzcdn.net/images/cover/68b4e986958b17f05b062ffa8d7ae114/1000x1000-000000-80-0-0.jpg" },
+      { "title": "you broke me first", "cover": "https://cdn-images.dzcdn.net/images/cover/49e86e935da829b44cb5ffae16826e55/1000x1000-000000-80-0-0.jpg" },
+      { "title": "exes", "cover": "https://cdn-images.dzcdn.net/images/cover/eca6766746c9ad358c208df95fc3ec2c/1000x1000-000000-80-0-0.jpg" },
+      { "title": "10:35", "cover": "https://cdn-images.dzcdn.net/images/cover/6aea29dd99c0ec6549143c61a3d9d3f6/1000x1000-000000-80-0-0.jpg" }
+    ],
+    "albums": [
+      { "title": "THINK LATER", "cover": "https://cdn-images.dzcdn.net/images/cover/a53d183b79003c64c0df5cdae5ebc266/1000x1000-000000-80-0-0.jpg" }
+    ]
+  },
+  "ILLIT": {
+    "tracks": [
+      { "title": "Magnetic", "cover": "https://cdn-images.dzcdn.net/images/cover/e6f3afd8a5c3d8ea797f458694166e47/1000x1000-000000-80-0-0.jpg" },
+      { "title": "My World", "cover": "https://cdn-images.dzcdn.net/images/cover/1cd086f149431b11158bd3516ca4ab91/1000x1000-000000-80-0-0.jpg" },
+      { "title": "Midnight Fiction", "cover": "https://cdn-images.dzcdn.net/images/cover/bfabb6f70db5842a2c42d0d431ab65ef/1000x1000-000000-80-0-0.jpg" },
+      { "title": "Lucky Girl Syndrome", "cover": "https://cdn-images.dzcdn.net/images/cover/1a8f399e9ddbb8ec2530232c0dfd953f/1000x1000-000000-80-0-0.jpg" }
+    ],
+    "albums": [
+      { "title": "SUPER REAL ME", "cover": "https://cdn-images.dzcdn.net/images/cover/e6f3afd8a5c3d8ea797f458694166e47/1000x1000-000000-80-0-0.jpg" }
+    ]
+  },
+  "KATSEYE": {
+    "tracks": [
+      { "title": "Touch", "cover": "https://cdn-images.dzcdn.net/images/cover/73bee9f48378d4c95139e693fd997569/1000x1000-000000-80-0-0.jpg" },
+      { "title": "Debut", "cover": "https://cdn-images.dzcdn.net/images/cover/4acc3760e12996fe21a77115fc67760b/1000x1000-000000-80-0-0.jpg" },
+      { "title": "My Way", "cover": "https://cdn-images.dzcdn.net/images/cover/290abe93bdda84bb8b170f30a4998c4c/1000x1000-000000-80-0-0.jpg" }
+    ],
+    "albums": [
+      { "title": "SIS (Soft Is Strong)", "cover": "https://cdn-images.dzcdn.net/images/cover/73bee9f48378d4c95139e693fd997569/1000x1000-000000-80-0-0.jpg" }
+    ]
   }
 };

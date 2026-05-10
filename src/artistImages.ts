@@ -98,5 +98,10 @@ export const ARTIST_IMAGES: Record<string, string> = {
   "Troye Sivan": "https://cdn-images.dzcdn.net/images/cover/4fbd5afbc6ad97de063b0b8d5730d765/1000x1000-000000-80-0-0.jpg",
   "Mitski": "https://cdn-images.dzcdn.net/images/cover/b899e98957cab00d900ada4611c39f7f/1000x1000-000000-80-0-0.jpg",
   "Frank Ocean": "https://cdn-images.dzcdn.net/images/cover/f798a866107715dd6dc1049e498ce21f/1000x1000-000000-80-0-0.jpg",
-  "Sabrina Carpenter": "https://cdn-images.dzcdn.net/images/cover/d0bed55a0efb3c5c3ddb3dacda67d9b3/1000x1000-000000-80-0-0.jpg"
+  "Sabrina Carpenter": "https://cdn-images.dzcdn.net/images/cover/d0bed55a0efb3c5c3ddb3dacda67d9b3/1000x1000-000000-80-0-0.jpg",
+  "PinkPantheress": "https://cdn-images.dzcdn.net/images/cover/f571cb780b339ec087201b1cea53c3d9/1000x1000-000000-80-0-0.jpg",
+  "Zara Larsson": "https://cdn-images.dzcdn.net/images/cover/290abe93bdda84bb8b170f30a4998c4c/1000x1000-000000-80-0-0.jpg",
+  "Tate McRae": "https://cdn-images.dzcdn.net/images/cover/68b4e986958b17f05b062ffa8d7ae114/1000x1000-000000-80-0-0.jpg",
+  "ILLIT": "https://cdn-images.dzcdn.net/images/cover/e6f3afd8a5c3d8ea797f458694166e47/1000x1000-000000-80-0-0.jpg",
+  "KATSEYE": "https://cdn-images.dzcdn.net/images/cover/73bee9f48378d4c95139e693fd997569/1000x1000-000000-80-0-0.jpg"
 };

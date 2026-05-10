@@ -46,12 +46,12 @@ export const computeCharts = (gameState: GameState) => {
         let albums = 0;
 
         if (r.type === 'Single') {
-           basePoints = (weeklyStreams / 250) + (weeklySales * 1.5) + (weeklyRadio / 500);
-           activity = (weeklyStreams / 100) + (weeklySales * 1.5) + (weeklyRadio / 100);
+           basePoints = (weeklyStreams / 200) + (weeklySales * 1.2) + (weeklyRadio / 800);
+           activity = (weeklyStreams / 100) + (weeklySales * 1.2) + (weeklyRadio / 150);
            albums = weeklySales;
         } else {
-           basePoints = (weeklyStreams / 350) + (weeklySales * 2) + (weeklyRadio / 1000);
-           activity = (weeklyStreams / 150) + (weeklySales * 2) + (weeklyRadio / 200);
+           basePoints = (weeklyStreams / 300) + (weeklySales * 1.5) + (weeklyRadio / 1200);
+           activity = (weeklyStreams / 150) + (weeklySales * 1.5) + (weeklyRadio / 250);
            albums = weeklySales * 1.2;
         }
 
@@ -101,16 +101,16 @@ export const computeCharts = (gameState: GameState) => {
                 type: npc.type,
                 isPlayer: false,
                 coverImage: npc.coverImage || ARTIST_IMAGES[npc.artist as string] || `https://i.pravatar.cc/200?u=${encodeURIComponent(npc.artist)}`,
-                points: npc.points,
-                computedTotal: npc.points,
-                activity: npc.points * 1.2,
-                albums: npc.type === 'Album' ? npc.points * 0.35 : 0,
+                points: npc.points * 0.82,
+                computedTotal: npc.points * 0.82,
+                activity: npc.points * 1.2 * 0.82,
+                albums: npc.type === 'Album' ? npc.points * 0.35 * 0.82 : 0,
                 isReEntrySim: isReEntry,
                 regionalPoints: {
-                    america: npc.points * popAm,
-                    latinAmerica: npc.points * popLat,
-                    europe: npc.points * popEur,
-                    global: npc.points
+                    america: npc.points * popAm * 0.82,
+                    latinAmerica: npc.points * popLat * 0.82,
+                    europe: npc.points * popEur * 0.82,
+                    global: npc.points * 0.82
                 }
             };
         });
@@ -163,16 +163,38 @@ export const computeCharts = (gameState: GameState) => {
 
           // If tracking week is exactly the same (daysPassed < 7), all is "NEW" or same as baseline
           // But to make it feel alive, we use currentWeekNumber to increment years/weeks
-          const wks = isNew ? 1 : (randomWeekVal + currentWeekNumber);
-          const pPeak = isNew ? (index + 1) : Math.max(1, Math.min(index + 1, Math.abs(hash % 10) + 1));
+          let wks = isNew ? 1 : (randomWeekVal + currentWeekNumber);
+          let pPeak = isNew ? (index + 1) : Math.max(1, Math.min(index + 1, Math.abs(hash % 10) + 1));
+          let isPlayerReEntry = false;
+
+          if (item.isPlayer) {
+              const displayChartName = chartKey === 'Hot100' ? 'Billboard Hot 100™' :
+                                       chartKey === 'Global200Single' ? 'Billboard Global 200 Songs' :
+                                       chartKey === 'Global200Album' ? 'Billboard Global 200 Albums' :
+                                       chartKey === 'RegionAmerica' ? 'US Top 100' :
+                                       chartKey === 'RegionLatinAmerica' ? 'Latin Top 100' :
+                                       chartKey === 'RegionEurope' ? 'Europe Top 100' : chartKey;
+              const playerRelease = publishedReleases.find(r => r.id === item.id);
+              if (playerRelease && playerRelease.chartHistory && playerRelease.chartHistory[displayChartName]) {
+                  const hist = playerRelease.chartHistory[displayChartName];
+                  wks = hist.weeksOnChart;
+                  pPeak = Math.min(index + 1, hist.peakPos);
+                  if (isNew) {
+                      isPlayerReEntry = true;
+                  }
+              } else {
+                  wks = 1;
+                  pPeak = index + 1;
+              }
+          }
 
           return { 
             ...item, 
             movement, 
             isNew, 
-            isReEntry: isNew ? (!!item.isReEntrySim) : false, 
+            isReEntry: isNew ? (item.isPlayer ? isPlayerReEntry : !!item.isReEntrySim) : false, 
             lastPos: prevIndex !== -1 ? (prevIndex + 1 > chartLimit ? 'NEW' : prevIndex + 1) : 'NEW',
-            peak: isNew ? (index + 1) : pPeak, 
+            peak: pPeak, 
             weeksOnChart: wks,
             peakPos: pPeak
           };

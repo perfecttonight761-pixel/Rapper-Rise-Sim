@@ -14,6 +14,7 @@ interface DashboardViewProps {
   currentAgeYears: number;
   isAutoAdvancing: boolean;
   setIsAutoAdvancing: (val: boolean | ((prev: boolean) => boolean)) => void;
+  onOpenWrapped?: () => void;
 }
 
 export function DashboardView({
@@ -26,7 +27,8 @@ export function DashboardView({
   isLoadingNextDay,
   currentAgeYears,
   isAutoAdvancing,
-  setIsAutoAdvancing
+  setIsAutoAdvancing,
+  onOpenWrapped
 }: DashboardViewProps) {
   const [showSchedule, setShowSchedule] = useState(false);
   const [showLevelModal, setShowLevelModal] = useState(false);
@@ -211,8 +213,33 @@ export function DashboardView({
 
       {/* Action Area */}
       <div className="md:h-32 flex flex-col md:flex-row items-center justify-end gap-4 md:gap-6 shrink-0 z-20 mt-6">
-        <div className="flex-1 text-white/40 text-sm text-center md:text-right w-full">
-           Ready for your next session? Advancing time will progress your career and potential chart performance.
+        <div className="flex-1 text-white/40 text-sm text-center md:text-left w-full flex flex-col md:flex-row items-center md:items-start justify-start gap-4">
+           {(() => {
+              if (!gameState) return null;
+              const currentDate = new Date(gameState.time.startDate);
+              currentDate.setDate(currentDate.getDate() + gameState.time.daysPassed);
+              const m = currentDate.getMonth();
+              const d = currentDate.getDate();
+              if (m === 11 && d >= 10 && d <= 31) {
+                 return (
+                    <button onClick={onOpenWrapped} className="relative group overflow-hidden bg-gradient-to-r from-[#FF00D6] to-[#01F0FF] rounded-2xl p-[2px] transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,0,214,0.3)]">
+                       <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity" />
+                       <div className="bg-black/80 backdrop-blur-sm px-6 py-3 rounded-xl flex items-center gap-3">
+                          <Music className="w-5 h-5 text-white animate-bounce" />
+                          <div className="flex flex-col items-start leading-tight">
+                             <span className="text-white font-black text-sm uppercase tracking-widest">Artist Wrapped</span>
+                             <span className="text-white/60 text-[10px] font-bold">Your Year in Review</span>
+                          </div>
+                       </div>
+                    </button>
+                 );
+              }
+              return (
+                 <span className="max-w-md hidden md:block mt-auto text-right md:text-left">
+                    Ready for your next session? Advancing time will progress your career and potential chart performance.
+                 </span>
+              );
+           })()}
         </div>
         <div className="flex gap-4 w-full md:w-auto h-20 md:h-full">
           <button 

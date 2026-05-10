@@ -19,6 +19,7 @@ import { YouTubeView } from './components/YouTubeView';
 import { SettingsView } from './components/SettingsView';
 import { PlaquesView } from './components/PlaquesView';
 import { GrammysView } from './components/GrammysView';
+import { SpotifyWrappedView } from './components/SpotifyWrappedView';
 
 const INITIAL_DATE = "2024-01-01T00:00:00.000Z";
 const STARTING_AGE_YEARS = 18;
@@ -904,6 +905,39 @@ export default function App() {
           });
         }
 
+        const currentYear = currentDateObj.getFullYear();
+        const currentMonth = currentDateObj.getMonth();
+        const currentDay = currentDateObj.getDate();
+        
+        let newWrappedHistory = prev.wrappedHistory ? [...prev.wrappedHistory] : [];
+        let newLastWrappedTotalStreams = prev.stats.lastWrappedTotalStreams || 0;
+        
+        if (currentMonth === 11 && currentDay === 10) {
+           const alreadyWrapped = newWrappedHistory.find(w => w.year === currentYear);
+           if (!alreadyWrapped) {
+               const streamsThisYear = (prev.stats.streams || 0) + dailyStreams - newLastWrappedTotalStreams;
+               const spotifyStreamsThisYear = Math.floor(streamsThisYear * 0.42); // Estimate since we don't track it exactly per year
+               
+               const songs = updatedReleasesWithSales.filter(r => r.type === 'Single').sort((a, b) => (b.streams?.spotify || 0) - (a.streams?.spotify || 0)).slice(0, 5);
+               const topSongs = songs.map(s => ({ title: s.title, streams: s.streams?.spotify || 0, image: s.coverImage }));
+                  
+               const albums = updatedReleasesWithSales.filter(r => r.type === 'Album' || r.type === 'EP').sort((a, b) => (b.streams?.spotify || 0) - (a.streams?.spotify || 0)).slice(0, 5);
+               const topAlbums = albums.map(a => ({ title: a.title, streams: a.streams?.spotify || 0, image: a.coverImage }));
+                  
+               newWrappedHistory.push({
+                   year: currentYear,
+                   streams: Math.max(0, spotifyStreamsThisYear),
+                   topSongs,
+                   topAlbums,
+                   listeners: Math.floor(Math.max(0, spotifyStreamsThisYear) / (Math.random() * 5 + 10)) + 5000,
+                   hours: Math.floor(Math.max(0, spotifyStreamsThisYear) * 3.5 / 60 / 60), // assume 3.5 mins per stream
+                   countries: Math.floor(Math.random() * 40) + 150
+               });
+               
+               newLastWrappedTotalStreams = (prev.stats.streams || 0) + dailyStreams;
+           }
+        }
+
         return {
           ...prev,
           artist: prev.artist ? { 
@@ -921,6 +955,7 @@ export default function App() {
           },
           stats: {
             ...prev.stats,
+            lastWrappedTotalStreams: newLastWrappedTotalStreams,
             money: prev.stats.money + revenue,
             streams: prev.stats.streams + dailyStreams,
             sales: (prev.stats.sales || 0) + dailySales,
@@ -938,12 +973,18 @@ export default function App() {
           merch: updatedMerch,
           gigs: updatedGigs,
           videos: updatedVideos,
-          grammys: nextGrammys
+          grammys: nextGrammys,
+          wrappedHistory: newWrappedHistory
         };
       });
 
+      const dateToCheck = new Date(gameState.time.startDate);
+      dateToCheck.setDate(dateToCheck.getDate() + gameState.time.daysPassed + 1);
+      const isWrappedDay = dateToCheck.getMonth() === 11 && dateToCheck.getDate() === 10;
+
       // Do not show the daily report popup if auto-advancing
-      if (!isAutoSkip) {
+      // Do not show daily report if it's wrapped day (we show wrapped screen instead)
+      if (!isAutoSkip && !isWrappedDay) {
         setDailyReport({
           dailyStreams,
           dailySales,
@@ -952,6 +993,12 @@ export default function App() {
           topAlbum
         });
       }
+
+      if (isWrappedDay) {
+          setIsAutoAdvancing(false);
+          setScreen('wrapped');
+      }
+
       setIsLoadingNextDay(false);
     }, isAutoSkip ? 100 : 1500); 
   };
@@ -1472,9 +1519,9 @@ export default function App() {
         </div>
 
         {/* Central Interface */}
-        {screen !== 'x' && screen !== 'google' && screen !== 'youtube' && (
+        {screen !== 'x' && screen !== 'google' && screen !== 'youtube' && screen !== 'wrapped' && (
           <div className="col-span-9 flex flex-col h-full bg-black/20 border border-white/5 rounded-3xl overflow-hidden relative min-h-[400px]">
-             {screen === 'dashboard' && <DashboardView gameState={gameState} setGameState={setGameState} dateDayStr={dateDayStr} dayName={dayName} monthYearStr={monthYearStr} handleNextDay={handleNextDay} isLoadingNextDay={isLoadingNextDay} currentAgeYears={currentAgeYears} isAutoAdvancing={isAutoAdvancing} setIsAutoAdvancing={setIsAutoAdvancing} />}
+             {screen === 'dashboard' && <DashboardView gameState={gameState} setGameState={setGameState} dateDayStr={dateDayStr} dayName={dayName} monthYearStr={monthYearStr} handleNextDay={handleNextDay} isLoadingNextDay={isLoadingNextDay} currentAgeYears={currentAgeYears} isAutoAdvancing={isAutoAdvancing} setIsAutoAdvancing={setIsAutoAdvancing} onOpenWrapped={() => setScreen('wrapped')} />}
              {screen === 'studio' && <StudioView gameState={gameState!} setGameState={setGameState} currentDate={currentDate} />}
              {screen === 'discography' && <DiscographyView gameState={gameState!} />}
              {screen === 'merch' && <MerchStoreView gameState={gameState!} setGameState={setGameState} />}
@@ -1489,6 +1536,12 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {screen === 'wrapped' && (
+        <div className="fixed inset-0 z-[60] bg-black text-white w-full h-full overflow-hidden flex justify-center">
+           <SpotifyWrappedView gameState={gameState!} onClose={() => setScreen('dashboard')} />
+        </div>
+      )}
 
       {screen === 'youtube' && (
         <div className="fixed inset-0 z-[60] bg-black text-white w-full h-full overflow-hidden flex justify-center">

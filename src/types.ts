@@ -1,4 +1,4 @@
-export type GameScreen = 'home' | 'saves' | 'create' | 'dashboard' | 'studio' | 'discography' | 'skills' | 'regions' | 'gigs' | 'platforms' | 'charts' | 'x' | 'google' | 'settings' | 'youtube' | 'plaques' | 'grammys' | 'merch';
+export type GameScreen = 'home' | 'saves' | 'create' | 'dashboard' | 'studio' | 'discography' | 'skills' | 'regions' | 'gigs' | 'platforms' | 'charts' | 'x' | 'google' | 'settings' | 'youtube' | 'plaques' | 'grammys' | 'merch' | 'wrapped';
 
 export type AwardCategory = 'Artist of the Year' | 'Song of the Year' | 'Album of the Year' | 'Record of the Year' | 'Best Pop Album' | 'Best Pop Duo/Group Performance' | 'Best Country Album' | 'Best Rap Album';
 
@@ -183,6 +183,7 @@ export interface GameState {
     skillPoints: number;
     youtubeSubscribers?: number;
     socialFollowers?: number;
+    lastWrappedTotalStreams?: number;
   };
   time: {
     startDate: string; // ISO string 
@@ -192,6 +193,15 @@ export interface GameState {
   gigs: Gig[];
   grammys?: GrammysState;
   videos?: Video[];
+  wrappedHistory?: {
+     year: number;
+     streams: number;
+     topSongs: { title: string, streams: number, image?: string }[];
+     topAlbums: { title: string, streams: number, image?: string }[];
+     listeners: number;
+     hours: number;
+     countries: number;
+  }[];
   isGodMode?: boolean;
 }
 

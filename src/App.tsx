@@ -824,8 +824,9 @@ export default function App() {
             let isModified = false;
             
             Object.keys(charts).forEach(chartName => {
-              const entryInChart = charts[chartName as keyof typeof charts].find((c: any) => c?.id === r.id);
-              if (entryInChart) {
+              const entryIndex = charts[chartName as keyof typeof charts].findIndex((c: any) => c?.id === r.id);
+              if (entryIndex !== -1) {
+                  const entryInChart = charts[chartName as keyof typeof charts][entryIndex];
                   isModified = true;
                   const displayChartName = chartName === 'Hot100' ? 'Billboard Hot 100™' :
                                            chartName === 'Global200Single' ? 'Billboard Global 200 Songs' :
@@ -834,21 +835,34 @@ export default function App() {
                                            chartName === 'RegionLatinAmerica' ? 'Latin Top 100' :
                                            chartName === 'RegionEurope' ? 'Europe Top 100' : chartName;
                                            
+                  const currentPosition = entryIndex + 1;
+                  
                   if (!newChartHistory[displayChartName]) {
                      newChartHistory[displayChartName] = {
                        debutDate: currentDateObj.toISOString(),
-                       peakPos: entryInChart.peakPos || entryInChart.peak || (entryInChart.isNew ? entryInChart.lastPos : 1),
+                       peakPos: currentPosition,
                        peakDate: currentDateObj.toISOString(),
-                       weeksOnChart: 1
+                       weeksOnChart: 1,
+                       weeksAtPeak: 1
                      };
                   } else {
                      if (intermediateGameState.time.daysPassed > 0 && intermediateGameState.time.daysPassed % 7 === 0) {
                          newChartHistory[displayChartName].weeksOnChart = (newChartHistory[displayChartName].weeksOnChart || 0) + 1;
-                     }
-                     const currentPeak = entryInChart.peakPos || entryInChart.peak || entryInChart.lastPos;
-                     if (currentPeak < newChartHistory[displayChartName].peakPos) {
-                         newChartHistory[displayChartName].peakPos = currentPeak;
-                         newChartHistory[displayChartName].peakDate = currentDateObj.toISOString();
+                         
+                         if (currentPosition < newChartHistory[displayChartName].peakPos) {
+                             newChartHistory[displayChartName].peakPos = currentPosition;
+                             newChartHistory[displayChartName].peakDate = currentDateObj.toISOString();
+                             newChartHistory[displayChartName].weeksAtPeak = 1;
+                         } else if (currentPosition === newChartHistory[displayChartName].peakPos) {
+                             newChartHistory[displayChartName].weeksAtPeak = (newChartHistory[displayChartName].weeksAtPeak || 1) + 1;
+                         }
+                     } else {
+                         // Even mid-week, if they somehow reach a higher peak (shouldn't happen on static days but just in case)
+                         if (currentPosition < newChartHistory[displayChartName].peakPos) {
+                             newChartHistory[displayChartName].peakPos = currentPosition;
+                             newChartHistory[displayChartName].peakDate = currentDateObj.toISOString();
+                             newChartHistory[displayChartName].weeksAtPeak = 1;
+                         }
                      }
                   }
               }

@@ -87,6 +87,10 @@ export interface BaseRelease {
     youtubeMusic: number;
     total: number;
   };
+  lastWrappedStreams?: {
+    spotify: number;
+    total: number;
+  };
   sales: {
     physical: number;
     digital: number;

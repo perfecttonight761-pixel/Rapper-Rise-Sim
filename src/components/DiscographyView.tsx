@@ -3,6 +3,7 @@ import { GameState, Release, Album } from '../types';
 import { Music, Disc, BarChart3, Calendar } from 'lucide-react';
 import { AlbumCardView } from './AlbumCardView';
 import { ReleaseStatsPopup } from './ReleaseStatsPopup';
+import { AlbumSalesChart } from './AlbumSalesChart';
 
 interface DiscographyViewProps {
   gameState: GameState;
@@ -13,6 +14,7 @@ export function DiscographyView({ gameState }: DiscographyViewProps) {
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [statsPopupRelease, setStatsPopupRelease] = useState<Release | null>(null);
   const [activeTab, setActiveTab] = useState<'Published' | 'Unreleased'>('Published');
+  const [showAlbumSalesChart, setShowAlbumSalesChart] = useState(false);
 
   const albums = releases.filter(r => r.type === 'Album');
   const allAlbumTrackIds = new Set(albums.flatMap(a => (a as Album).trackIds));
@@ -38,6 +40,13 @@ export function DiscographyView({ gameState }: DiscographyViewProps) {
         <h2 className="text-3xl font-black tracking-tighter italic text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 uppercase">Discography</h2>
         
         <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 shrink-0">
+          <button 
+            onClick={() => setShowAlbumSalesChart(true)}
+            className="px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all bg-blue-500/20 text-blue-300 hover:text-white mr-2 flex items-center gap-2"
+          >
+            <BarChart3 className="w-3 h-3" />
+            Albums Sales Chart
+          </button>
           <button 
             onClick={() => setActiveTab('Published')}
             className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'Published' ? 'bg-purple-600 text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
@@ -115,6 +124,10 @@ export function DiscographyView({ gameState }: DiscographyViewProps) {
       
       {statsPopupRelease && (
         <ReleaseStatsPopup release={statsPopupRelease} gameState={gameState} onClose={() => setStatsPopupRelease(null)} />
+      )}
+
+      {showAlbumSalesChart && (
+        <AlbumSalesChart gameState={gameState} onClose={() => setShowAlbumSalesChart(false)} />
       )}
     </div>
   );

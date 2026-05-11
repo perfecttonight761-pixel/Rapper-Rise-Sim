@@ -918,11 +918,17 @@ export default function App() {
                const streamsThisYear = (prev.stats.streams || 0) + dailyStreams - newLastWrappedTotalStreams;
                const spotifyStreamsThisYear = Math.floor(streamsThisYear * 0.42); // Estimate since we don't track it exactly per year
                
-               const songs = updatedReleasesWithSales.filter(r => r.type === 'Single').sort((a, b) => (b.streams?.spotify || 0) - (a.streams?.spotify || 0)).slice(0, 5);
-               const topSongs = songs.map(s => ({ title: s.title, streams: s.streams?.spotify || 0, image: s.coverImage }));
+               const songs = updatedReleasesWithSales.filter(r => r.type === 'Single').map(s => {
+                   const spotifyThisYear = Math.max(0, (s.streams?.spotify || 0) - (s.lastWrappedStreams?.spotify || 0));
+                   return { ...s, spotifyThisYear };
+               }).sort((a, b) => b.spotifyThisYear - a.spotifyThisYear).slice(0, 5);
+               const topSongs = songs.map(s => ({ title: s.title, streams: s.spotifyThisYear, image: s.coverImage }));
                   
-               const albums = updatedReleasesWithSales.filter(r => r.type === 'Album' || r.type === 'EP').sort((a, b) => (b.streams?.spotify || 0) - (a.streams?.spotify || 0)).slice(0, 5);
-               const topAlbums = albums.map(a => ({ title: a.title, streams: a.streams?.spotify || 0, image: a.coverImage }));
+               const albums = updatedReleasesWithSales.filter(r => r.type === 'Album' || r.type === 'EP').map(a => {
+                   const spotifyThisYear = Math.max(0, (a.streams?.spotify || 0) - (a.lastWrappedStreams?.spotify || 0));
+                   return { ...a, spotifyThisYear };
+               }).sort((a, b) => b.spotifyThisYear - a.spotifyThisYear).slice(0, 5);
+               const topAlbums = albums.map(a => ({ title: a.title, streams: a.spotifyThisYear, image: a.coverImage }));
                   
                newWrappedHistory.push({
                    year: currentYear,
@@ -935,6 +941,15 @@ export default function App() {
                });
                
                newLastWrappedTotalStreams = (prev.stats.streams || 0) + dailyStreams;
+               
+               // Update lastWrappedStreams for all releases
+               updatedReleasesWithSales = updatedReleasesWithSales.map(r => ({
+                   ...r,
+                   lastWrappedStreams: {
+                       spotify: r.streams?.spotify || 0,
+                       total: r.streams?.total || 0,
+                   }
+               }));
            }
         }
 

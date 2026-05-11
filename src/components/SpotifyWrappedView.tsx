@@ -95,7 +95,7 @@ export const SpotifyWrappedView: React.FC<SpotifyWrappedViewProps> = ({ gameStat
            <h2 className="text-xl font-black text-black tracking-widest uppercase">Top Songs</h2>
         </div>
         
-        <div className="grid grid-cols-2 gap-3 z-10 flex-1 overflow-y-auto pb-4">
+        <div className="grid grid-cols-2 gap-3 z-30 flex-1 overflow-y-auto pb-4 relative pointer-events-auto hide-scrollbar">
            {latestWrapped.topSongs?.slice(0, 5).map((song, idx) => (
                <div key={idx} className={`bg-[#F5F5DC] p-2 flex flex-col relative border-2 border-white shadow-[2px_2px_10px_rgba(0,0,0,0.1)] ${idx === 0 ? 'col-span-2 p-3' : ''}`}>
                   <div className={`relative w-full mb-2 bg-gray-200 shadow-inner ${idx === 0 ? 'aspect-video' : 'aspect-square'}`}>
@@ -133,7 +133,7 @@ export const SpotifyWrappedView: React.FC<SpotifyWrappedViewProps> = ({ gameStat
            <h2 className="text-xl font-black text-[#5D4037] tracking-widest uppercase">Top Albums</h2>
         </div>
         
-        <div className="grid grid-cols-2 gap-3 z-10 flex-1 overflow-y-auto pb-8">
+        <div className="grid grid-cols-2 gap-3 z-30 flex-1 overflow-y-auto pb-8 relative pointer-events-auto hide-scrollbar">
            {latestWrapped.topAlbums?.slice(0, 5).map((album, idx) => (
                <div key={idx} className={`bg-[#EFEBE9] p-2 flex flex-col relative border-2 border-white shadow-[2px_2px_10px_rgba(0,0,0,0.1)] rounded-xl ${idx === 0 ? 'col-span-2 p-3' : ''}`}>
                   <div className={`relative w-full mb-2 bg-[#D7CCC8] shadow-inner rounded-lg overflow-hidden border border-[#BCAAA4] ${idx === 0 ? 'aspect-video' : 'aspect-square'}`}>
@@ -180,27 +180,24 @@ export const SpotifyWrappedView: React.FC<SpotifyWrappedViewProps> = ({ gameStat
         ))}
       </div>
 
-      <div className="flex-1 w-full max-w-sm mx-auto bg-black rounded-[2.5rem] overflow-hidden shadow-2xl relative cursor-pointer border border-white/10" onClick={() => {
-         if (currentSlide < slides.length - 1) {
-            setCurrentSlide(currentSlide + 1);
+      <div className="flex-1 w-full max-w-sm mx-auto bg-black rounded-[2.5rem] overflow-hidden shadow-2xl relative cursor-pointer border border-white/10" onClick={(e) => {
+         const rect = e.currentTarget.getBoundingClientRect();
+         const x = e.clientX - rect.left;
+         if (x < rect.width / 3) {
+            setCurrentSlide(prev => Math.max(0, prev - 1));
+         } else if (x > (rect.width * 2) / 3) {
+            if (currentSlide < slides.length - 1) {
+                setCurrentSlide(currentSlide + 1);
+            } else {
+                onClose();
+            }
+         } else {
+            if (currentSlide < slides.length - 1) {
+                setCurrentSlide(currentSlide + 1);
+            }
          }
       }}>
          {slides[currentSlide]}
-         
-         <div className="absolute inset-0 flex justify-between pointer-events-none">
-            <div className="w-1/3 h-full cursor-pointer pointer-events-auto" onClick={(e) => {
-               e.stopPropagation();
-               setCurrentSlide(prev => Math.max(0, prev - 1));
-            }} />
-            <div className="w-1/3 h-full cursor-pointer pointer-events-auto" onClick={(e) => {
-               e.stopPropagation();
-               if (currentSlide < slides.length - 1) {
-                   setCurrentSlide(prev => prev + 1);
-               } else {
-                   onClose();
-               }
-            }} />
-         </div>
          
          <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute top-4 right-4 p-2 bg-black/20 backdrop-blur-md text-white rounded-full hover:bg-black/40 transition-colors pointer-events-auto z-50">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>

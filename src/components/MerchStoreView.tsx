@@ -249,7 +249,7 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
                                      </div>
                                      <div className="absolute inset-0 bg-[#1f1f1f] border border-white/20 rounded-sm shadow-2xl overflow-hidden flex items-center justify-center z-10 p-[2px]">
                                          <div className="w-full h-full relative z-0">
-                                            <img src={merchImage} className="w-full h-full object-cover" />
+                                            <img src={merchImage || undefined} className="w-full h-full object-cover" />
                                          </div>
                                          <div className="absolute inset-0 z-20 pointer-events-none rounded-[2px]" style={{
                                              background: 'linear-gradient(105deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 2%, transparent 3%, transparent 97%, rgba(255,255,255,0.1) 98%, rgba(255,255,255,0.4) 100%)',
@@ -339,7 +339,7 @@ export function MerchStoreView({ gameState, setGameState }: MerchStoreViewProps)
                          <div className="absolute inset-0 bg-[#1f1f1f] border border-white/20 rounded-sm shadow-2xl overflow-hidden flex items-center justify-center z-10 p-[2px]">
                              <div className="w-full h-full relative z-0">
                                 {item.image ? (
-                                   <img src={item.image} className="w-full h-full object-cover" />
+                                   <img src={item.image || undefined} className="w-full h-full object-cover" />
                                 ) : (
                                    <div className="w-full h-full flex items-center justify-center"><Disc className="w-16 h-16 text-white/10" /></div>
                                 )}

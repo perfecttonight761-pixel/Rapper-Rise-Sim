@@ -141,7 +141,7 @@ export function RadioChart({ gameState, onBack }: { gameState: GameState, onBack
                   <div className="flex-1 min-w-0 flex items-center gap-6">
                     <div className="w-16 h-16 bg-[#111] border border-white/10 rounded-md shrink-0 relative overflow-hidden group-hover:scale-105 transition-transform duration-500 shadow-xl">
                        {song.coverImage ? (
-                         <img src={song.coverImage} className="w-full h-full object-cover" alt="" />
+                         <img src={song.coverImage || undefined} className="w-full h-full object-cover" alt="" />
                        ) : (
                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900 font-black text-white/20">
                             {song.title.substring(0, 1)}

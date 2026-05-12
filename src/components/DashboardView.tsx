@@ -121,7 +121,7 @@ export function DashboardView({
               <label className="w-56 h-56 cursor-pointer bg-[#111] rounded-[2rem] border border-white/10 flex items-center justify-center mb-8 relative overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.5)] transition-all duration-500 group-hover/avatar:scale-105 group-hover/avatar:shadow-purple-500/10">
                  {gameState?.artist?.image ? (
                     <>
-                      <img src={gameState.artist.image} alt="Artist" className="absolute w-full h-full object-cover transition-all duration-500 group-hover/avatar:scale-110" />
+                      <img src={gameState.artist.image || undefined} alt="Artist" className="absolute w-full h-full object-cover transition-all duration-500 group-hover/avatar:scale-110" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
                         <span className="text-white font-bold text-sm tracking-widest uppercase">Change</span>

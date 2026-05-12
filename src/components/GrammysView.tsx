@@ -78,7 +78,7 @@ export function GrammysView({ gameState, setGameState }: GrammysViewProps) {
             {/* Cover Image */}
             <div className="w-full h-[300px] sm:h-[400px] bg-gray-200 overflow-hidden shrink-0">
                {gameState.artist?.image ? (
-                 <img src={gameState.artist.image} className="w-full h-full object-cover object-top" />
+                 <img src={gameState.artist.image || undefined} className="w-full h-full object-cover object-top" />
                ) : (
                  <div className="w-full h-full bg-gradient-to-tr from-gray-300 to-gray-400"></div>
                )}
@@ -285,7 +285,7 @@ export function GrammysView({ gameState, setGameState }: GrammysViewProps) {
                                } ${nominee.isPlayer ? 'ring-2 ring-purple-500/50' : ''}`}
                              >
                                 <div className={`w-12 h-12 rounded-lg overflow-hidden shrink-0 ${isWinner ? 'bg-black/20' : 'bg-white/10'} flex items-center justify-center shadow-lg border border-white/10`}>
-                                   {coverImage ? <img src={coverImage} className="w-full h-full object-cover" /> : (nominee.type === 'Artist' ? <User className="w-6 h-6" /> : nominee.type === 'Album' ? <Disc className="w-6 h-6" /> : <Music className="w-6 h-6" />)}
+                                   {coverImage ? <img src={coverImage || undefined} className="w-full h-full object-cover" /> : (nominee.type === 'Artist' ? <User className="w-6 h-6" /> : nominee.type === 'Album' ? <Disc className="w-6 h-6" /> : <Music className="w-6 h-6" />)}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                    <div className={`font-bold text-[15px] truncate ${isWinner ? 'text-black' : 'text-white'}`}>

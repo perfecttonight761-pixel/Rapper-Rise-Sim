@@ -63,7 +63,7 @@ const Tweet = ({ tweet, onProfileClick }: { key?: React.Key, tweet: any, onProfi
       </div>
       {tweet.mediaUrl && (
          <div className="mt-3 rounded-2xl border border-gray-800 overflow-hidden">
-            <img src={tweet.mediaUrl} className="w-full max-h-[400px] object-cover" />
+            <img src={tweet.mediaUrl || undefined} className="w-full max-h-[400px] object-cover" />
          </div>
       )}
       {tweet.media && (
@@ -230,7 +230,7 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
             id: '1.25',
             author: { name: 'chart data', handle: '@chartdata', verified: 'gold', avatar: CHART_DATA_AVATAR },
             content: tweetText,
-            media: latestRelease.coverImage ? <div className="bg-black flex justify-center mt-2 rounded-[1rem] overflow-hidden"><img src={latestRelease.coverImage} className="w-full max-w-[400px] h-auto border border-gray-800" /></div> : undefined,
+            media: latestRelease.coverImage ? <div className="bg-black flex justify-center mt-2 rounded-[1rem] overflow-hidden"><img src={latestRelease.coverImage || undefined} className="w-full max-w-[400px] h-auto border border-gray-800" /></div> : undefined,
             likes: Math.min(999000, Math.floor(latestRelease.debutStreams / 50)),
             retweets: Math.min(100000, Math.floor(latestRelease.debutStreams / 200)),
             replies: Math.floor(followerCount * 0.002) + 20,
@@ -401,7 +401,7 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
             id: `debut_${release.id}`,
             author: { name: 'chart data', handle: '@chartdata', verified: 'gold', avatar: CHART_DATA_AVATAR },
             content: `${playerName}'s "${release.title}" debuts at #${rank} on the ${chartName}.`,
-            media: release.coverImage ? <div className="bg-black flex justify-center"><img src={release.coverImage} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div> : undefined,
+            media: release.coverImage ? <div className="bg-black flex justify-center"><img src={release.coverImage || undefined} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div> : undefined,
             likes: Math.floor(Math.random() * 50000) + 20000,
             retweets: Math.floor(Math.random() * 10000) + 5000,
             replies: Math.floor(Math.random() * 2000) + 500,
@@ -423,7 +423,7 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
            id: `cert_${release.id}`,
            author: { name: 'chart data', handle: '@chartdata', verified: 'gold', avatar: CHART_DATA_AVATAR },
            content: `${playerName}'s "${release.title}" is now certified ${cert} in the US for selling over ${sales.toLocaleString()} units!`,
-           media: release.coverImage ? <div className="bg-black flex justify-center"><img src={release.coverImage} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div> : undefined,
+           media: release.coverImage ? <div className="bg-black flex justify-center"><img src={release.coverImage || undefined} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div> : undefined,
            likes: Math.floor(followerCount * 0.05) + 10000,
            retweets: Math.floor(followerCount * 0.01) + 2000,
            replies: 1000 + Math.floor(Math.random() * 500),
@@ -447,7 +447,7 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
             id: `monthly_streams`,
             author: { name: 'chart data', handle: '@chartdata', verified: 'gold', avatar: CHART_DATA_AVATAR },
             content: `${playerName} earned ${estimatedMonthly.toLocaleString()} streams this month on all platforms.`,
-            media: gameState.artist?.image ? <div className="bg-black flex justify-center"><img src={gameState.artist.image} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div> : undefined,
+            media: gameState.artist?.image ? <div className="bg-black flex justify-center"><img src={gameState.artist.image || undefined} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div> : undefined,
             likes: Math.floor(Math.random() * 30000) + 15000,
             retweets: Math.floor(Math.random() * 5000) + 2000,
             replies: Math.floor(Math.random() * 1000) + 300,
@@ -479,10 +479,10 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
                if (playerNom.type !== 'Artist') {
                  const release = gameState.releases.find(r => r?.id === playerNom.id);
                  if (release?.coverImage) {
-                   mediaContent = <div className="bg-black flex justify-center"><img src={release.coverImage} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div>;
+                   mediaContent = <div className="bg-black flex justify-center"><img src={release.coverImage || undefined} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div>;
                  }
                } else if (gameState.artist?.image) {
-                 mediaContent = <div className="bg-black flex justify-center"><img src={gameState.artist?.image} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div>;
+                 mediaContent = <div className="bg-black flex justify-center"><img src={gameState.artist?.image || undefined} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div>;
                }
 
                generatedTweets.push({
@@ -509,10 +509,10 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
                   if (winner.type !== 'Artist') {
                     const release = gameState.releases.find(r => r?.id === winner.id);
                     if (release?.coverImage) {
-                      mediaContent = <div className="bg-black flex justify-center"><img src={release.coverImage} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div>;
+                      mediaContent = <div className="bg-black flex justify-center"><img src={release.coverImage || undefined} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div>;
                     }
                   } else if (gameState.artist?.image) {
-                    mediaContent = <div className="bg-black flex justify-center"><img src={gameState.artist?.image} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div>;
+                    mediaContent = <div className="bg-black flex justify-center"><img src={gameState.artist?.image || undefined} className="w-full max-w-[400px] h-auto shadow-xl border border-gray-800" /></div>;
                   }
 
                   generatedTweets.push({
@@ -559,7 +559,7 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
     // Player's latest tweet (mocked)
     generatedTweets.push({
       id: '5',
-      author: { name: playerName, handle: playerHandle, verified: playerVerifiedType, avatar: gameState.artist?.image ? <img src={gameState.artist.image} className="w-full h-full object-cover" /> : playerName[0] },
+      author: { name: playerName, handle: playerHandle, verified: playerVerifiedType, avatar: gameState.artist?.image ? <img src={gameState.artist.image || undefined} className="w-full h-full object-cover" /> : playerName[0] },
       content: latestRelease ? `thank u for streaming ${latestRelease.title} 🖤` : `working on something special for u guys...`,
       likes: Math.floor(followerCount * 0.02) + 1000,
       retweets: Math.floor(followerCount * 0.008) + 200,
@@ -579,7 +579,7 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
          
          return {
             id: ct.id,
-            author: { name: playerName, handle: playerHandle, verified: playerVerifiedType, avatar: gameState.artist?.image ? <img src={gameState.artist.image} className="w-full h-full object-cover" /> : playerName[0] },
+            author: { name: playerName, handle: playerHandle, verified: playerVerifiedType, avatar: gameState.artist?.image ? <img src={gameState.artist.image || undefined} className="w-full h-full object-cover" /> : playerName[0] },
             content: ct.content,
             likes: ct.likes,
             retweets: ct.retweets,
@@ -643,7 +643,7 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
                    <div className="flex justify-between items-start absolute -top-12 left-4 right-4">
                       <div className="w-24 h-24 rounded-full bg-gray-700 border-4 border-black flex items-center justify-center text-4xl font-bold overflow-hidden">
                          {(isPlayerProfile && gameState.artist?.image) ? (
-                            <img src={gameState.artist.image} className="w-full h-full object-cover" alt="Profile" />
+                            <img src={gameState.artist.image || undefined} className="w-full h-full object-cover" alt="Profile" />
                          ) : (
                             profileName[0]
                          )}
@@ -777,7 +777,7 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
        {/* Composer */}
        <div className="flex gap-3 p-4 border-b border-gray-800">
           <div className="w-10 h-10 rounded-full bg-gray-700 flex shrink-0 items-center justify-center font-bold text-lg cursor-pointer flex-shrink-0 overflow-hidden" onClick={() => setViewingProfile('player')}>
-             {gameState.artist?.image ? <img src={gameState.artist.image} className="w-full h-full object-cover" /> : playerName[0]}
+             {gameState.artist?.image ? <img src={gameState.artist.image || undefined} className="w-full h-full object-cover" /> : playerName[0]}
           </div>
           <div className="flex-1 flex flex-col pt-1.5">
              <input 
@@ -792,7 +792,7 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
              />
              {newTweetImage && (
                 <div className="relative mb-4">
-                   <img src={newTweetImage} className="w-full max-h-[300px] object-cover rounded-2xl border border-gray-800" />
+                   <img src={newTweetImage || undefined} className="w-full max-h-[300px] object-cover rounded-2xl border border-gray-800" />
                    <button onClick={() => setNewTweetImage(null)} className="absolute top-2 right-2 bg-black/60 p-2 rounded-full hover:bg-black/80 transition-colors">
                       <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M10.59 12L4.54 5.96l1.42-1.42L12 10.59l6.04-6.05 1.42 1.42L13.41 12l6.05 6.04-1.42 1.42L12 13.41l-6.04 6.05-1.42-1.42L10.59 12z"></path></svg>
                    </button>

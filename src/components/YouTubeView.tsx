@@ -160,7 +160,7 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
          {/* Banner */}
          <div className="w-full h-32 md:h-40 bg-zinc-800">
             {gameState.artist?.socialProfile?.bannerUrl ? (
-               <img src={gameState.artist.socialProfile.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+               <img src={gameState.artist.socialProfile.bannerUrl || undefined} alt="Banner" className="w-full h-full object-cover" />
             ) : gameState.artist?.image ? (
                <div className="w-full h-full relative overflow-hidden">
                   <div className="absolute inset-0 bg-cover bg-center blur-md opacity-50 transform scale-110" style={{ backgroundImage: `url(${gameState.artist.image})` }}></div>
@@ -172,7 +172,7 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
          <div className="px-4 mt-3 flex flex-col items-start text-left">
             <div className="flex items-center gap-4 mb-3">
                <div className="w-20 h-20 rounded-full bg-zinc-800 overflow-hidden shrink-0">
-                  {gameState.artist?.image ? <img src={gameState.artist.image} className="w-full h-full object-cover" /> : <UserIcon className="m-auto mt-5 w-10 h-10 text-zinc-600" />}
+                  {gameState.artist?.image ? <img src={gameState.artist.image || undefined} className="w-full h-full object-cover" /> : <UserIcon className="m-auto mt-5 w-10 h-10 text-zinc-600" />}
                </div>
                
                <div className="flex flex-col">
@@ -256,7 +256,7 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
                            return (
                               <div key={video.id} className="flex gap-3 p-3">
                                  <div className="w-40 aspect-video bg-zinc-800 rounded-lg overflow-hidden shrink-0 relative">
-                                    {video.thumbnail || song?.coverImage ? <img src={video.thumbnail || song?.coverImage} className="w-full h-full object-cover" /> : null}
+                                    {video.thumbnail || song?.coverImage ? <img src={video.thumbnail || song?.coverImage || undefined} className="w-full h-full object-cover" /> : null}
                                     <div className="absolute bottom-1 right-1 bg-black/80 px-1 rounded text-[10px] font-medium font-mono text-white flex items-center">
                                        <Music className="w-3 h-3 mr-1" /> 3:45
                                     </div>
@@ -281,7 +281,7 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
                   {publishedReleases.slice().reverse().map(release => (
                      <div key={release.id} onClick={() => setSelectedReleaseId(release.id)} className="flex gap-4 p-3 items-center cursor-pointer hover:bg-white/5 transition-colors">
                         <div className="w-32 h-32 bg-zinc-800 rounded-lg overflow-hidden shrink-0 relative">
-                           {release.coverImage ? <img src={release.coverImage} className="w-full h-full object-cover" /> : null}
+                           {release.coverImage ? <img src={release.coverImage || undefined} className="w-full h-full object-cover" /> : null}
                            <div className="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[11px] font-medium font-mono text-white flex items-center">
                               <Music className="w-3 h-3 mr-1" /> 
                               {release.type === 'Album' ? (release as Album).trackIds.length : 1}
@@ -335,7 +335,7 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
                         </button>
 
                         <div className="w-48 h-48 bg-zinc-800 shadow-2xl relative z-10 rounded mb-6">
-                           {release.coverImage && <img src={release.coverImage} className="w-full h-full object-cover rounded" />}
+                           {release.coverImage && <img src={release.coverImage || undefined} className="w-full h-full object-cover rounded" />}
                         </div>
                         <h2 className="text-2xl font-bold text-center z-10 relative mb-1">{release.title}</h2>
                         <p className="text-sm font-medium text-white/60 z-10 relative">Playlist • {releaseTracks.length} video • {formatViews(totalViews)} views</p>
@@ -357,7 +357,7 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
                            return (
                               <div key={track.id} className="flex gap-4 p-3 px-4 hover:bg-white/5 transition-colors group cursor-pointer">
                                  <div className="w-32 aspect-video bg-zinc-800 rounded-lg overflow-hidden shrink-0 relative">
-                                    {release.coverImage ? <img src={release.coverImage} className="w-full h-full object-cover" /> : null}
+                                    {release.coverImage ? <img src={release.coverImage || undefined} className="w-full h-full object-cover" /> : null}
                                     <div className="absolute bottom-1 right-1 bg-black/80 px-1 rounded text-[10px] font-medium font-mono text-white flex items-center">
                                        <Music className="w-3 h-3 mr-1" /> 3:20
                                     </div>
@@ -433,7 +433,7 @@ export function YouTubeView({ gameState, setGameState, onClose }: YouTubeViewPro
                      </label>
                   ) : (
                      <div className="w-full aspect-video rounded bg-black overflow-hidden relative group">
-                        <img src={uploadThumbnail} className="w-full h-full object-cover" />
+                        <img src={uploadThumbnail || undefined} className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                            <label className="bg-[#212121] text-white px-4 py-2 rounded-lg font-medium text-sm cursor-pointer hover:bg-[#3f3f3f] transition-colors">
                               Change Thumbnail

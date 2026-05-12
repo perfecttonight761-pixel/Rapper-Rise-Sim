@@ -21,6 +21,8 @@ import { PlaquesView } from './components/PlaquesView';
 import { GrammysView } from './components/GrammysView';
 import { SpotifyWrappedView } from './components/SpotifyWrappedView';
 
+import { TourView } from './components/TourView';
+
 const INITIAL_DATE = "2024-01-01T00:00:00.000Z";
 const STARTING_AGE_YEARS = 18;
 const CAPITAL_MAP: Record<StartCapital, number> = {
@@ -578,6 +580,137 @@ export default function App() {
         return gig;
       });
 
+      let tourTicketRevenue = 0;
+      let tourTicketsSold = 0;
+      let activeTourName = '';
+      let activeTourStage = '';
+      let activeTourId = gameState.activeTourId;
+
+      const updatedTours = (gameState.tours || []).map(tour => {
+        if (tour.status === 'Completed') {
+           if (activeTourId === tour.id) activeTourId = null;
+           return tour;
+        }
+        if (tour.status === 'Planning') return tour;
+        
+        let tourActive = false;
+        const updatedLegs = tour.legs.map(leg => {
+             if (leg.completed) return leg;
+
+             const preSaleStart = new Date(leg.preSaleStart);
+             const preSaleEnd = new Date(leg.preSaleEnd);
+             const legDate = new Date(leg.date);
+
+             let dailyLegRev = 0;
+             let dailyLegAtt = 0;
+
+             // Check if gig is happening or passed
+             if (currentDateObj >= legDate) {
+                 return { ...leg, completed: true, dailyRevenue: 0, dailyAttendance: 0 };
+             }
+
+               // Presale selling
+               if (currentDateObj >= preSaleStart && currentDateObj <= legDate) {
+                   tourActive = true;
+                   activeTourStage = String(leg.venueId);
+
+                   const totalDays = Math.max(1, (legDate.getTime() - preSaleStart.getTime()) / (1000 * 3600 * 24));
+                   const daysSinceStart = Math.max(0, (currentDateObj.getTime() - preSaleStart.getTime()) / (1000 * 3600 * 24));
+                   
+                   // Demand factors
+                   let popToUse = newAmériquePop;
+                   if (leg.venueId.includes('Europe') || leg.venueId.includes('europe')) popToUse = newEuropePop;
+                   else if (leg.venueId.includes('latin') || leg.venueId.includes('Latin')) popToUse = newLatinPop;
+                   
+                   const popFactor = Math.max(1, popToUse);
+                   const popDemand = Math.pow(popFactor, 2); 
+                   
+                   // Demand curve: Huge on day 0, then a steady lower tail that slightly rises near the event.
+                   let dayMultiplier = 0.5;
+                   if (daysSinceStart === 0) dayMultiplier = 15; // First day rush
+                   else if (daysSinceStart === 1) dayMultiplier = 5;
+                   else if (daysSinceStart > totalDays - 7) dayMultiplier = 1.5; // Final week rush
+                   
+                   // Total max people wanting to buy a ticket today
+                   const totalDailyShowDemand = (popDemand * 0.15 + 10) * levelMultiplier * dayMultiplier * (0.8 + Math.random() * 0.4);
+                   let remainingDailyDemand = Math.floor(totalDailyShowDemand);
+
+                   const newSeatLevels = leg.seatLevels.map(sl => {
+                       if (sl.sold >= sl.capacity || remainingDailyDemand <= 0) return sl;
+
+                       // Determine willingness to pay based on venue level and seat tier
+                       const baseWillingness = 20 + (Math.pow(popFactor, 1.5) * 0.5) + (levelMultiplier * 5);
+                       const willingness = baseWillingness / sl.level; 
+                       const priceRatio = sl.price / willingness;
+
+                       // If price > willingness, sales tank.
+                       let priceSensitivity = 1.0;
+                       if (priceRatio > 1) {
+                           priceSensitivity = Math.max(0, Math.min(1.0, Math.exp(-(priceRatio - 1) * 4))); 
+                       }
+                       
+                       // Try to allocate remaining demand
+                       // If tier is cheap/good value, faster allocation
+                       const availableTiers = leg.seatLevels.filter(s => s.sold < s.capacity).length;
+                       const demandShare = remainingDailyDemand / Math.max(1, availableTiers);
+                       
+                       let dailyCapacityDemand = Math.floor(demandShare * priceSensitivity);
+                       if (dailyCapacityDemand < 0) dailyCapacityDemand = 0;
+                       
+                       // Small drip if demand is practically 0 but they are a bit famous
+                       if (dailyCapacityDemand === 0 && priceSensitivity > 0.05 && popToUse > 5 && remainingDailyDemand > 0) {
+                           dailyCapacityDemand = Math.floor(Math.random() * 3);
+                       }
+
+                       const actualSold = Math.min(dailyCapacityDemand, sl.capacity - sl.sold);
+                       
+                       remainingDailyDemand -= actualSold; // Reduce the pool
+                       dailyLegAtt += actualSold;
+                       dailyLegRev += (actualSold * sl.price);
+
+                       return { ...sl, sold: sl.sold + actualSold };
+                   });
+                   
+                   tourTicketsSold += dailyLegAtt;
+                   tourTicketRevenue += dailyLegRev;
+
+                   return {
+                       ...leg,
+                       seatLevels: newSeatLevels,
+                       dailyRevenue: dailyLegRev,
+                       dailyAttendance: dailyLegAtt,
+                       totalRevenue: leg.totalRevenue + dailyLegRev,
+                       totalAttendance: leg.totalAttendance + dailyLegAtt
+                   };
+             }
+
+             return { ...leg, dailyRevenue: 0, dailyAttendance: 0 };
+        });
+
+        if (tourActive) {
+            activeTourName = tour.name;
+        }
+
+        let newStatus = tour.status;
+        const allCompleted = updatedLegs.every(l => l.completed);
+        
+        if (allCompleted) {
+            newStatus = 'Completed';
+            if (activeTourId === tour.id) activeTourId = null;
+        } else if (tourActive && newStatus === 'PreSale') {
+            newStatus = 'Ongoing';
+            activeTourId = tour.id;
+        }
+
+        return {
+           ...tour,
+           legs: updatedLegs,
+           status: newStatus,
+           totalRevenue: tour.totalRevenue + tourTicketRevenue,
+           totalAttendance: tour.totalAttendance + tourTicketsSold
+        };
+      });
+
       let merchRevenue = 0;
       let totalPhysicalSalesToAdd: Record<string, number> = {};
       let totalDigitalSalesToAdd: Record<string, number> = {};
@@ -644,7 +777,7 @@ export default function App() {
          };
       });
 
-      revenue += merchRevenue + gigPayouts;
+      revenue += merchRevenue + gigPayouts + tourTicketRevenue;
 
       let updatedReleasesWithSales = updatedReleases.map(r => {
          const d = totalDigitalSalesToAdd[r.id] || 0;
@@ -987,6 +1120,8 @@ export default function App() {
           releases: updatedReleasesWithSales,
           merch: updatedMerch,
           gigs: updatedGigs,
+          tours: updatedTours,
+          activeTourId,
           videos: updatedVideos,
           grammys: nextGrammys,
           wrappedHistory: newWrappedHistory
@@ -1005,7 +1140,11 @@ export default function App() {
           dailySales,
           revenue,
           topSong,
-          topAlbum
+          topAlbum,
+          tourRevenue: tourTicketRevenue,
+          tourAttendance: tourTicketsSold,
+          tourName: activeTourName,
+          tourStage: activeTourStage
         });
       }
 
@@ -1452,6 +1591,13 @@ export default function App() {
                 Book Gigs
               </button>
               <button 
+                onClick={() => { setScreen('tour'); setSidebarOpen(false); }}
+                className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium transition-colors ${screen === 'tour' ? 'bg-purple-600/20 text-purple-200 border border-purple-500/30' : 'bg-transparent text-white/40 hover:bg-white/5 hover:text-white'}`}
+              >
+                <MapPin className="w-4 h-4" />
+                Tour Settings
+              </button>
+              <button 
                 onClick={() => { setScreen('platforms'); setSidebarOpen(false); }}
                 className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium transition-colors ${screen === 'platforms' ? 'bg-purple-600/20 text-purple-200 border border-purple-500/30' : 'bg-transparent text-white/40 hover:bg-white/5 hover:text-white'}`}
               >
@@ -1543,6 +1689,7 @@ export default function App() {
              {screen === 'skills' && <SkillsView gameState={gameState!} setGameState={setGameState} />}
              {screen === 'regions' && <RegionPopularityView gameState={gameState!} />}
              {screen === 'gigs' && <GigsView gameState={gameState!} setGameState={setGameState} currentDate={currentDate} />}
+             {screen === 'tour' && <TourView gameState={gameState!} setGameState={setGameState} currentDate={currentDate} />}
              {screen === 'platforms' && <PlatformsView gameState={gameState!} setGameState={setGameState as any} />}
              {screen === 'charts' && <ChartsView gameState={gameState!} onClose={() => setScreen('dashboard')} />}
              {screen === 'settings' && <SettingsView gameState={gameState!} setGameState={setGameState} />}
@@ -1617,6 +1764,24 @@ export default function App() {
                    <span className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Top Album</span>
                    <span className="text-sm font-medium text-white line-clamp-1">{dailyReport.topAlbum || 'None'}</span>
                 </div>
+                {dailyReport.tourName && (
+                  <div className="col-span-2 lg:col-span-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex justify-between items-center text-center">
+                     <div className="flex flex-col text-left">
+                       <span className="text-[10px] uppercase tracking-widest text-blue-400 mb-1">Tour Update</span>
+                       <span className="text-sm font-black text-white">{dailyReport.tourName}</span>
+                     </div>
+                     <div className="flex gap-4">
+                       <div className="flex flex-col items-end">
+                          <span className="text-[10px] uppercase tracking-widest text-white/50">Tickets Sold</span>
+                          <span className="text-sm font-mono text-white">+{dailyReport.tourAttendance?.toLocaleString()}</span>
+                       </div>
+                       <div className="flex flex-col items-end">
+                          <span className="text-[10px] uppercase tracking-widest text-white/50">Revenue</span>
+                          <span className="text-sm font-mono text-green-400">+${dailyReport.tourRevenue?.toLocaleString()}</span>
+                       </div>
+                     </div>
+                  </div>
+                )}
              </div>
 
              <button 
@@ -1712,7 +1877,7 @@ function CreateArtistScreen({ onSubmit }: { onSubmit: (data: GameState['artist']
               <label className="w-32 h-32 rounded-2xl overflow-hidden border-2 border-dashed border-white/20 bg-black/40 flex items-center justify-center cursor-pointer hover:border-purple-400 hover:bg-white/10 transition-colors relative group">
                 {imageContent ? (
                   <>
-                    <img src={imageContent} alt="Preview" className="w-full h-full object-cover" />
+                    <img src={imageContent || undefined} alt="Preview" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center">
                        <Upload className="w-6 h-6 text-white" />
                     </div>

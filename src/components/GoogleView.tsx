@@ -309,7 +309,7 @@ function SpotifyCharts({ gameState, onBack, onSelect }: { gameState: GameState, 
                <div className="text-4xl sm:text-5xl font-black tracking-tight leading-none mb-4 w-[70%]">Daily Top Artists<br/><span className="opacity-90">Global</span></div>
                <div className="mt-auto flex items-end gap-3 cursor-pointer hover:opacity-80 transition-opacity" onClick={(e) => { e.stopPropagation(); onSelect(chartData.dailyArtists[0], true); }}>
                  <div className="w-24 h-24 bg-[#2c52c6] shadow-xl shrink-0 overflow-hidden rounded-md relative flex items-center justify-center text-white">
-                    {chartData.dailyArtists[0]?.coverImage ? <img src={chartData.dailyArtists[0].coverImage} className="w-full h-full object-cover" /> : <span className="text-3xl font-black">{chartData.dailyArtists[0]?.title?.substring(0, 2).toUpperCase() || 'A'}</span>}
+                    {chartData.dailyArtists[0]?.coverImage ? <img src={chartData.dailyArtists[0].coverImage || undefined} className="w-full h-full object-cover" /> : <span className="text-3xl font-black">{chartData.dailyArtists[0]?.title?.substring(0, 2).toUpperCase() || 'A'}</span>}
                  </div>
                  <div className="flex flex-col min-w-0 pb-1">
                     <span className="bg-[#2c52c6] text-white text-[10px] font-black px-1.5 py-0.5 rounded-sm w-max uppercase mb-1 tracking-tight">#1 {formattedDaily}</span>
@@ -468,7 +468,7 @@ function SpotifyList({ type, data, formattedDaily, onBack, onSelect, gameState, 
 
 function ChartCoverImage({ item }: { item: any }) {
    if (item?.coverImage) {
-      return <img src={item.coverImage} className="w-full h-full object-cover" />;
+      return <img src={item.coverImage || undefined} className="w-full h-full object-cover" />;
    }
    
    // Generate fallback cover

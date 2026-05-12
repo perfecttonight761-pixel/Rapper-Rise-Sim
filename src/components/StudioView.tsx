@@ -13,6 +13,16 @@ interface StudioViewProps {
 export function StudioView({ gameState, setGameState, currentDate }: StudioViewProps) {
   const [activeTab, setActiveTab] = useState<'Song' | 'Album'>('Song');
 
+  const activeTour = gameState.tours?.find(t => t.id === gameState.activeTourId);
+  if (activeTour?.status === 'Ongoing') {
+     return (
+        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+            <h2 className="text-3xl font-black italic uppercase text-white mb-2">On Tour</h2>
+            <p className="text-white/60 max-w-md">You are currently hitting the road on <strong>{activeTour.name}</strong>. You cannot record new music until the tour is completed!</p>
+        </div>
+     )
+  }
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-y-auto">
       <div className="flex border-b border-white/10 p-4 shrink-0">
@@ -159,7 +169,7 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
       <div className="flex gap-6 items-start">
         <label className="w-32 h-32 shrink-0 rounded-2xl overflow-hidden border-2 border-dashed border-white/20 bg-black/40 flex items-center justify-center cursor-pointer hover:border-purple-400 hover:bg-white/10 transition-colors relative group">
           {cover ? (
-            <img src={cover} alt="Cover" className="w-full h-full object-cover" />
+            <img src={cover || undefined} alt="Cover" className="w-full h-full object-cover" />
           ) : (
             <div className="text-center p-2 text-white/40 group-hover:text-purple-400 transition-colors">
               <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -336,7 +346,7 @@ function CreateAlbumForm({ gameState, setGameState, currentDate }: StudioViewPro
        <div className="flex gap-6 items-start mb-6">
         <label className="w-32 h-32 shrink-0 rounded-2xl overflow-hidden border-2 border-dashed border-white/20 bg-black/40 flex items-center justify-center cursor-pointer hover:border-purple-400 hover:bg-white/10 transition-colors relative group">
           {cover ? (
-            <img src={cover} alt="Cover" className="w-full h-full object-cover" />
+            <img src={cover || undefined} alt="Cover" className="w-full h-full object-cover" />
           ) : (
             <div className="text-center p-2 text-white/40 group-hover:text-purple-400 transition-colors">
               <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -364,7 +374,7 @@ function CreateAlbumForm({ gameState, setGameState, currentDate }: StudioViewPro
             {eligibleTracks.map(track => (
               <label key={track.id} className="flex items-center gap-4 bg-white/5 border border-white/10 p-3 rounded-xl cursor-pointer hover:bg-white/10 transition-colors">
                 <input type="checkbox" className="w-4 h-4 bg-black border border-white/20 rounded accent-purple-500" checked={selectedTracks.includes(track.id)} onChange={() => toggleTrack(track.id)} />
-                {track.coverImage ? <img src={track.coverImage} alt="cover" className="w-10 h-10 rounded-md object-cover" /> : <div className="w-10 h-10 rounded-md bg-white/10 flex items-center justify-center"><Music className="w-4 h-4 text-white/40" /></div>}
+                {track.coverImage ? <img src={track.coverImage || undefined} alt="cover" className="w-10 h-10 rounded-md object-cover" /> : <div className="w-10 h-10 rounded-md bg-white/10 flex items-center justify-center"><Music className="w-4 h-4 text-white/40" /></div>}
                 <div className="flex flex-col">
                    <span className="font-bold text-sm tracking-wide">{track.title}</span>
                    <span className="text-xs text-white/40 uppercase tracking-widest">{track.status}</span>

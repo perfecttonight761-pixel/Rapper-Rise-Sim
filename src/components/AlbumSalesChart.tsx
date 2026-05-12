@@ -40,7 +40,7 @@ export function AlbumSalesChart({ gameState, onClose }: AlbumSalesChartProps) {
       <div className="flex flex-col md:flex-row items-center md:items-start md:justify-center gap-6 mt-10 md:mt-12 md:px-10 mb-16 max-w-6xl mx-auto w-full">
         <div className="w-32 h-32 md:w-36 md:h-36 shadow-lg rounded-full overflow-hidden border-2 border-gray-200 shrink-0 relative bg-gray-100 flex items-center justify-center">
           {gameState.artist?.image ? (
-             <img src={gameState.artist?.image} className="w-full h-full object-cover" alt={gameState.artist?.name || "Artist"} />
+             <img src={gameState.artist?.image || undefined} className="w-full h-full object-cover" alt={gameState.artist?.name || "Artist"} />
           ) : (
              <span className="text-4xl text-gray-300">🎤</span>
           )}
@@ -80,8 +80,7 @@ export function AlbumSalesChart({ gameState, onClose }: AlbumSalesChartProps) {
                     style={{ height: `${heightPercent}%` }}
                   >
                     {album.coverImage ? (
-                        <img 
-                            src={album.coverImage} 
+                        <img src={album.coverImage || undefined} 
                             alt={album.title}
                             className="absolute top-0 left-0 w-full h-full object-cover object-top"
                         />

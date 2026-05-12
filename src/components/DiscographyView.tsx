@@ -155,7 +155,7 @@ function ReleaseSection({ title, items, onSelectAlbum, onShowStats, isSmall }: {
 
               <div className={`${isSmall ? 'w-10 h-10' : 'w-16 h-16'} shrink-0 rounded-xl overflow-hidden bg-white/5 flex items-center justify-center shadow-lg relative`}>
                  {item.coverImage ? (
-                   <img src={item.coverImage} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                   <img src={item.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                  ) : (
                    <Music className="w-6 h-6 text-white/20" />
                  )}

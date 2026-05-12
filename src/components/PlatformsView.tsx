@@ -150,7 +150,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
         {/* Actions */}
         <div className="p-6 md:px-12 flex items-center gap-4 shrink-0">
            <div className="w-10 h-10 rounded-full border border-white/20 overflow-hidden shrink-0 hidden md:block">
-              {gameState.artist.image ? <img src={gameState.artist.image} className="w-full h-full object-cover"/> : <User className="w-full h-full text-white/20" />}
+              {gameState.artist.image ? <img src={gameState.artist.image || undefined} className="w-full h-full object-cover"/> : <User className="w-full h-full text-white/20" />}
            </div>
            <button className="border border-white/50 hover:border-white rounded-full px-4 py-1.5 text-xs font-bold transition-all text-white">Following</button>
            <MoreHorizontal className="text-white/60 w-6 h-6 shrink-0" />
@@ -170,7 +170,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                     <div className="w-6 text-center text-white/60 font-medium text-sm group-hover:hidden">{i + 1}</div>
                     <div className="w-6 text-center text-white hidden group-hover:block"><Play className="w-4 h-4 fill-current m-auto"/></div>
                     <div className="w-10 h-10 bg-[#282828] shrink-0">
-                       {song.coverImage ? <img src={song.coverImage} className="w-full h-full object-cover" /> : <Disc className="w-5 h-5 text-white/20 m-auto mt-2.5" />}
+                       {song.coverImage ? <img src={song.coverImage || undefined} className="w-full h-full object-cover" /> : <Disc className="w-5 h-5 text-white/20 m-auto mt-2.5" />}
                     </div>
                     <div className="flex-1 flex flex-col justify-center">
                        <span className="text-white text-[15px]">{song.title}</span>
@@ -197,12 +197,12 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
            {popularRelease && (
               <div className="flex gap-4 items-start max-w-sm cursor-pointer group" onClick={() => handleSelectRelease(popularRelease)}>
                  <div className="w-[84px] h-[84px] bg-[#282828] shrink-0 rounded-md overflow-hidden relative">
-                    {popularRelease.coverImage ? <img src={popularRelease.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /> : <Disc className="w-8 h-8 text-white/20 m-auto mt-6" />}
+                    {popularRelease.coverImage ? <img src={popularRelease.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /> : <Disc className="w-8 h-8 text-white/20 m-auto mt-6" />}
                  </div>
                  <div className="flex flex-col">
                     <div className="flex items-center gap-2 mb-1">
                        <div className="w-5 h-5 rounded-full overflow-hidden bg-white/20 shrink-0">
-                          {gameState.artist.image && <img src={gameState.artist.image} className="w-full h-full object-cover" />}
+                          {gameState.artist.image && <img src={gameState.artist.image || undefined} className="w-full h-full object-cover" />}
                        </div>
                        <span className="text-white/60 text-xs font-bold">Posted by {gameState.artist.name}</span>
                     </div>
@@ -224,7 +224,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
               {[...standaloneReleases].sort((a, b) => getPlatformStreams(b, 'spotify') - getPlatformStreams(a, 'spotify')).slice(0, 5).map((rel, i) => (
                 <div key={rel.id} className="min-w-[140px] max-w-[140px] flex flex-col gap-3 group cursor-pointer" onClick={() => handleSelectRelease(rel)}>
                    <div className="w-full aspect-square bg-[#282828] rounded-md overflow-hidden relative">
-                      {rel.coverImage ? <img src={rel.coverImage} className="w-full h-full object-cover" /> : <Disc className="w-12 h-12 text-white/20 m-auto mt-10" />}
+                      {rel.coverImage ? <img src={rel.coverImage || undefined} className="w-full h-full object-cover" /> : <Disc className="w-12 h-12 text-white/20 m-auto mt-10" />}
                       <div className="absolute bottom-2 right-2 w-10 h-10 bg-[#1db954] rounded-full flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all shadow-xl">
                          <Play className="w-5 h-5 text-black fill-current ml-1" />
                       </div>
@@ -296,7 +296,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                  }).map((rel, i) => (
                     <div key={rel.id} className="flex gap-4 items-center group cursor-pointer hover:bg-white/5 p-2 -mx-2 rounded-lg" onClick={() => handleSelectRelease(rel)}>
                        <div className="w-20 h-20 bg-[#282828] rounded-md overflow-hidden relative shrink-0 shadow-lg">
-                          {rel.coverImage ? <img src={rel.coverImage} className="w-full h-full object-cover" /> : <Disc className="w-10 h-10 text-white/20 m-auto mt-5" />}
+                          {rel.coverImage ? <img src={rel.coverImage || undefined} className="w-full h-full object-cover" /> : <Disc className="w-10 h-10 text-white/20 m-auto mt-5" />}
                        </div>
                        <div className="flex flex-col flex-1">
                            <span className="text-white font-bold text-lg leading-tight">{rel.title}</span>
@@ -322,7 +322,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                  {standaloneReleases.slice().reverse().map((rel) => (
                     <div key={rel.id} className="flex gap-4 items-center group cursor-pointer hover:bg-white/5 p-2 -mx-2 rounded-lg" onClick={() => { setArtistPickId(rel.id); setIsSelectingPick(false); }}>
                        <div className="w-16 h-16 bg-[#282828] rounded-md overflow-hidden relative shrink-0 shadow-lg">
-                          {rel.coverImage ? <img src={rel.coverImage} className="w-full h-full object-cover" /> : <Disc className="w-8 h-8 text-white/20 m-auto mt-4" />}
+                          {rel.coverImage ? <img src={rel.coverImage || undefined} className="w-full h-full object-cover" /> : <Disc className="w-8 h-8 text-white/20 m-auto mt-4" />}
                        </div>
                        <div className="flex flex-col flex-1">
                            <span className="text-white font-bold text-base leading-tight">{rel.title}</span>
@@ -344,12 +344,12 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
               </div>
               <div className="flex flex-col items-center pt-4 px-6 pb-24 md:max-w-2xl mx-auto">
                  <div className="w-56 h-56 md:w-64 md:h-64 shadow-[0_16px_40px_rgba(0,0,0,0.5)] mb-6 bg-[#282828] rounded overflow-hidden shadow-2xl">
-                    {selectedSpotifyRelease.coverImage ? <img src={selectedSpotifyRelease.coverImage} className="w-full h-full object-cover" /> : <Disc className="w-20 h-20 text-white/20 m-auto mt-16 md:mt-20" />}
+                    {selectedSpotifyRelease.coverImage ? <img src={selectedSpotifyRelease.coverImage || undefined} className="w-full h-full object-cover" /> : <Disc className="w-20 h-20 text-white/20 m-auto mt-16 md:mt-20" />}
                  </div>
                  <h1 className="text-3xl font-black text-center mb-4">{selectedSpotifyRelease.title}</h1>
                  <div className="flex items-center gap-2 text-[13px] font-bold text-white/80 mb-6 w-full justify-center">
                     <div className="w-6 h-6 rounded-full overflow-hidden bg-white/20">
-                       {gameState.artist.image && <img src={gameState.artist.image} className="w-full h-full object-cover" />}
+                       {gameState.artist.image && <img src={gameState.artist.image || undefined} className="w-full h-full object-cover" />}
                     </div>
                     <span className="hover:underline cursor-pointer">{gameState.artist.name}</span>
                     <span className="text-white/40">•</span>
@@ -412,7 +412,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
     return (
       <div className="bg-white text-black min-h-screen flex flex-col font-sans selection:bg-[#fa243c]/10 pb-20 relative">
         <div className="h-[35rem] relative flex flex-col justify-end p-8 md:p-24 overflow-hidden shrink-0">
-           {gameState.artist.image ? <img src={gameState.artist.image} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-zinc-100" />}
+           {gameState.artist.image ? <img src={gameState.artist.image || undefined} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-zinc-100" />}
            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent z-10" />
            <div className="relative z-20 w-full max-w-7xl mx-auto text-left">
               <span className="text-red-500 font-black uppercase text-[10px] tracking-[0.2em] mb-4 block">Artist Profile</span>
@@ -432,7 +432,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
               {topSongs.map((song, i) => (
                  <div key={song.id} className="flex items-center gap-4 py-3 group cursor-pointer border-b border-zinc-50 hover:bg-zinc-50 px-4 rounded-lg transition-colors" onClick={() => handleSelectAppleRelease(song)}>
                     <span className="w-4 text-zinc-300 font-bold">{i+1}</span>
-                    <div className="w-12 h-12 bg-zinc-100 rounded-lg overflow-hidden shrink-0">{song.coverImage ? <img src={song.coverImage} className="w-full h-full object-cover" /> : <Disc className="m-auto mt-3 text-zinc-300" />}</div>
+                    <div className="w-12 h-12 bg-zinc-100 rounded-lg overflow-hidden shrink-0">{song.coverImage ? <img src={song.coverImage || undefined} className="w-full h-full object-cover" /> : <Disc className="m-auto mt-3 text-zinc-300" />}</div>
                     <div className="flex-1 flex flex-col">
                        <span className="font-bold text-base leading-tight group-hover:text-[#fa243c] transition-colors">{song.title}</span>
                     </div>
@@ -454,7 +454,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                  {appleAlbums.slice(0, 5).map(album => (
                     <div key={album.id} className="flex flex-col group cursor-pointer" onClick={() => handleSelectAppleRelease(album)}>
                        <div className="w-full aspect-square bg-zinc-100 rounded-xl overflow-hidden mb-3 shadow-[0_4px_12px_rgba(0,0,0,0.05)] shadow-zinc-200">
-                          {album.coverImage ? <img src={album.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-16 h-16 text-zinc-300 m-auto mt-12" />}
+                          {album.coverImage ? <img src={album.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-16 h-16 text-zinc-300 m-auto mt-12" />}
                        </div>
                        <span className="font-bold text-[15px] leading-tight truncate">{album.title}</span>
                        <span className="text-zinc-500 text-[13px] mt-0.5">{new Date(album.releaseDate!).getFullYear()}</span>
@@ -476,7 +476,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                  {appleSingles.map(single => (
                     <div key={single.id} className="flex flex-col min-w-[150px] max-w-[150px] group cursor-pointer" onClick={() => handleSelectAppleRelease(single)}>
                        <div className="w-full aspect-square bg-zinc-100 rounded-xl overflow-hidden mb-3 shadow-[0_4px_12px_rgba(0,0,0,0.05)] shadow-zinc-200">
-                          {single.coverImage ? <img src={single.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-12 h-12 text-zinc-300 m-auto mt-10" />}
+                          {single.coverImage ? <img src={single.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-12 h-12 text-zinc-300 m-auto mt-10" />}
                        </div>
                        <span className="font-bold text-[15px] leading-tight truncate">{single.title}</span>
                        <span className="text-zinc-500 text-[13px] mt-0.5">{new Date(single.releaseDate!).getFullYear()}</span>
@@ -518,7 +518,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
               <div className="w-full max-w-5xl mx-auto px-6 py-12 flex flex-col md:flex-row gap-12 items-start">
                  <div className="w-full max-w-xs mx-auto md:max-w-none md:mx-0 md:w-80 shrink-0 md:sticky md:top-32 flex flex-col pt-4 md:pt-0">
                     <div className="w-full aspect-square bg-zinc-100 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] mb-6 border border-zinc-200/50">
-                       {selectedAppleRelease.coverImage ? <img src={selectedAppleRelease.coverImage} className="w-full h-full object-cover" /> : <Disc className="w-24 h-24 text-zinc-300 m-auto mt-20 md:mt-28" />}
+                       {selectedAppleRelease.coverImage ? <img src={selectedAppleRelease.coverImage || undefined} className="w-full h-full object-cover" /> : <Disc className="w-24 h-24 text-zinc-300 m-auto mt-20 md:mt-28" />}
                     </div>
                     <h1 className="text-2xl font-black leading-tight mb-2">{selectedAppleRelease.title}</h1>
                     <p className="text-[#fa243c] text-xl font-semibold mb-1 cursor-pointer hover:underline">{gameState.artist.name}</p>
@@ -586,7 +586,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                     }).map(rel => (
                        <div key={rel.id} className="flex flex-col group cursor-pointer" onClick={() => handleSelectAppleRelease(rel)}>
                           <div className="w-full aspect-square bg-zinc-100 rounded-xl overflow-hidden mb-3 shadow-[0_4px_12px_rgba(0,0,0,0.05)] shadow-zinc-200 border border-zinc-100">
-                             {rel.coverImage ? <img src={rel.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-16 h-16 text-zinc-300 m-auto mt-12" />}
+                             {rel.coverImage ? <img src={rel.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-16 h-16 text-zinc-300 m-auto mt-12" />}
                           </div>
                           <span className="font-bold text-[15px] leading-tight truncate">{rel.title}</span>
                           <span className="text-zinc-500 text-[13px] capitalize mt-0.5">{rel.type} • {new Date(rel.releaseDate!).getFullYear()}</span>
@@ -646,7 +646,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                </div>
                <div className="flex items-center gap-4 bg-transparent group cursor-pointer w-max max-w-full pr-4" onClick={() => handleSelectAmazonRelease(highlightRelease)}>
                   <div className="w-24 h-24 bg-zinc-800 rounded-md overflow-hidden shrink-0 shadow-lg">
-                     {highlightRelease.coverImage ? <img src={highlightRelease.coverImage} className="w-full h-full object-cover" /> : <Disc className="w-10 h-10 text-white/20 m-auto mt-7" />}
+                     {highlightRelease.coverImage ? <img src={highlightRelease.coverImage || undefined} className="w-full h-full object-cover" /> : <Disc className="w-10 h-10 text-white/20 m-auto mt-7" />}
                   </div>
                   <div className="flex flex-col truncate">
                      <span className="font-bold text-lg mb-1 truncate">{highlightRelease.title}</span>
@@ -670,7 +670,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                   {amazonSingles.slice(0, 10).map((single, i) => (
                      <div key={single.id} className="min-w-[140px] max-w-[140px] flex flex-col gap-2 group cursor-pointer" onClick={() => handleSelectAmazonRelease(single)}>
                         <div className="w-full aspect-square bg-zinc-800 rounded-md overflow-hidden">
-                           {single.coverImage ? <img src={single.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /> : <Disc className="w-12 h-12 text-white/20 m-auto mt-10" />}
+                           {single.coverImage ? <img src={single.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /> : <Disc className="w-12 h-12 text-white/20 m-auto mt-10" />}
                         </div>
                         <div className="flex flex-col mt-1">
                            <span className="font-bold text-[15px] truncate">{single.title}</span>
@@ -693,7 +693,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                   {topSongs.map((song, i) => (
                      <div key={song.id} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-md cursor-pointer group" onClick={() => handleSelectAmazonRelease(song)}>
                         <div className="w-14 h-14 bg-zinc-800 rounded-md overflow-hidden shrink-0">
-                           {song.coverImage ? <img src={song.coverImage} className="w-full h-full object-cover" /> : <Disc className="w-6 h-6 text-white/20 m-auto mt-4" />}
+                           {song.coverImage ? <img src={song.coverImage || undefined} className="w-full h-full object-cover" /> : <Disc className="w-6 h-6 text-white/20 m-auto mt-4" />}
                         </div>
                         <div className="flex flex-col flex-1 truncate">
                            <span className="font-bold text-[15px] truncate">{i + 1}. {song.title}</span>
@@ -719,7 +719,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                   {amazonAlbums.slice(0, 5).map((album, i) => (
                      <div key={album.id} className="min-w-[140px] max-w-[140px] flex flex-col gap-2 group cursor-pointer" onClick={() => handleSelectAmazonRelease(album)}>
                         <div className="w-full aspect-square bg-zinc-800 rounded-md overflow-hidden relative">
-                           {album.coverImage ? <img src={album.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /> : <Disc className="w-12 h-12 text-white/20 m-auto mt-10" />}
+                           {album.coverImage ? <img src={album.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /> : <Disc className="w-12 h-12 text-white/20 m-auto mt-10" />}
                         </div>
                         <div className="flex flex-col mt-1">
                            <span className="font-bold text-[15px] truncate">{i + 1}. {album.title}</span>
@@ -779,7 +779,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                      }).map(rel => (
                         <div key={rel.id} className="flex flex-col group cursor-pointer" onClick={() => handleSelectAmazonRelease(rel)}>
                            <div className="w-full aspect-square bg-zinc-800 rounded-lg overflow-hidden mb-3 relative">
-                              {rel.coverImage ? <img src={rel.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-16 h-16 text-white/20 m-auto mt-12" />}
+                              {rel.coverImage ? <img src={rel.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-16 h-16 text-white/20 m-auto mt-12" />}
                            </div>
                            <span className="font-bold text-[15px] leading-tight truncate">{rel.title}</span>
                            <span className="text-white/60 text-[13px] capitalize mt-0.5">{rel.type} • {new Date(rel.releaseDate!).getFullYear()}</span>
@@ -801,7 +801,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                <div className="max-w-4xl mx-auto px-6 md:px-12 flex flex-col md:flex-row gap-8 items-start pb-24 text-left">
                   <div className="w-full md:w-80 shrink-0 md:sticky md:top-24">
                      <div className="w-full aspect-square bg-zinc-800 rounded-lg overflow-hidden shadow-2xl mb-6 border border-white/10">
-                        {selectedAmazonRelease.coverImage ? <img src={selectedAmazonRelease.coverImage} className="w-full h-full object-cover" /> : <Disc className="w-24 h-24 text-zinc-300 m-auto mt-24" />}
+                        {selectedAmazonRelease.coverImage ? <img src={selectedAmazonRelease.coverImage || undefined} className="w-full h-full object-cover" /> : <Disc className="w-24 h-24 text-zinc-300 m-auto mt-24" />}
                      </div>
                      <h1 className="text-3xl md:text-5xl font-black mb-2 leading-tight">{selectedAmazonRelease.title}</h1>
                      <p className="text-[#00e0ff] font-bold text-lg mb-1">{gameState.artist.name}</p>
@@ -871,7 +871,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                      {standaloneReleases.slice().reverse().map(rel => (
                         <div key={rel.id} className="flex flex-col group cursor-pointer" onClick={() => { setAmazonHighlightId(rel.id); setIsSelectingAmazonHighlight(false); }}>
                            <div className={`w-full aspect-square bg-zinc-800 rounded-lg overflow-hidden mb-3 relative border-4 ${amazonHighlightId === rel.id || (!amazonHighlightId && highlightRelease?.id === rel.id) ? 'border-[#00e0ff]' : 'border-transparent'}`}>
-                              {rel.coverImage ? <img src={rel.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-16 h-16 text-white/20 m-auto mt-12" />}
+                              {rel.coverImage ? <img src={rel.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-16 h-16 text-white/20 m-auto mt-12" />}
                               {(amazonHighlightId === rel.id || (!amazonHighlightId && highlightRelease?.id === rel.id)) && (
                                  <div className="absolute top-2 right-2 bg-[#00e0ff] text-black w-6 h-6 rounded-full flex items-center justify-center">
                                     <CheckCircle2 className="w-4 h-4" />

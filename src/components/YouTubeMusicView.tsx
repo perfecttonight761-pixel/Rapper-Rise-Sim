@@ -136,7 +136,7 @@ export function YouTubeMusicView({ gameState }: YouTubeMusicViewProps) {
                                     {chunk.map((song) => (
                                         <div key={song.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-white/10 group cursor-pointer transition-colors">
                                             <div className="w-12 h-12 bg-[#212121] rounded shrink-0 overflow-hidden relative">
-                                                {song.coverImage ? <img src={song.coverImage} className="w-full h-full object-cover" /> : null}
+                                                {song.coverImage ? <img src={song.coverImage || undefined} className="w-full h-full object-cover" /> : null}
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                                     <Play className="w-5 h-5 text-white fill-current" />
                                                 </div>
@@ -167,7 +167,7 @@ export function YouTubeMusicView({ gameState }: YouTubeMusicViewProps) {
                             {albums.map((album) => (
                                 <div key={album.id} className="flex flex-col w-[160px] md:w-[200px] snap-start shrink-0 group cursor-pointer">
                                     <div className="w-full aspect-square bg-[#212121] rounded-md overflow-hidden relative mb-3">
-                                        {album.coverImage ? <img src={album.coverImage} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <Disc className="w-12 h-12 text-white/20 m-auto mt-16 md:mt-24" />}
+                                        {album.coverImage ? <img src={album.coverImage || undefined} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <Disc className="w-12 h-12 text-white/20 m-auto mt-16 md:mt-24" />}
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                             <div className="w-12 h-12 bg-black/60 rounded-full flex items-center justify-center backdrop-blur-sm">
                                                 <Play className="w-6 h-6 text-white fill-current ml-1" />
@@ -193,7 +193,7 @@ export function YouTubeMusicView({ gameState }: YouTubeMusicViewProps) {
                             {[...songs].reverse().map((song) => (
                                 <div key={song.id} className="flex flex-col w-[160px] md:w-[200px] snap-start shrink-0 group cursor-pointer">
                                     <div className="w-full aspect-square bg-[#212121] rounded-md overflow-hidden relative mb-3">
-                                        {song.coverImage ? <img src={song.coverImage} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <Disc className="w-12 h-12 text-white/20 m-auto mt-16 md:mt-24" />}
+                                        {song.coverImage ? <img src={song.coverImage || undefined} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <Disc className="w-12 h-12 text-white/20 m-auto mt-16 md:mt-24" />}
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                             <div className="w-12 h-12 bg-black/60 rounded-full flex items-center justify-center backdrop-blur-sm">
                                                 <Play className="w-6 h-6 text-white fill-current ml-1" />
@@ -221,7 +221,7 @@ export function YouTubeMusicView({ gameState }: YouTubeMusicViewProps) {
                                 return (
                                     <div key={video.id} className="flex flex-col w-[260px] md:w-[320px] snap-start shrink-0 group cursor-pointer">
                                         <div className="w-full aspect-video bg-[#212121] rounded-md overflow-hidden relative mb-3">
-                                            {video.thumbnail || song?.coverImage ? <img src={video.thumbnail || song?.coverImage} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /> : null}
+                                            {video.thumbnail || song?.coverImage ? <img src={video.thumbnail || song?.coverImage || undefined} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" /> : null}
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                                 <div className="w-12 h-12 bg-black/60 rounded-full flex items-center justify-center backdrop-blur-sm">
                                                     <Play className="w-6 h-6 text-white fill-current ml-1" />

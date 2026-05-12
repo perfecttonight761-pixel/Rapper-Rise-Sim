@@ -1,4 +1,4 @@
-export type GameScreen = 'home' | 'saves' | 'create' | 'dashboard' | 'studio' | 'discography' | 'skills' | 'regions' | 'gigs' | 'platforms' | 'charts' | 'x' | 'google' | 'settings' | 'youtube' | 'plaques' | 'grammys' | 'merch' | 'wrapped';
+export type GameScreen = 'home' | 'saves' | 'create' | 'dashboard' | 'studio' | 'discography' | 'skills' | 'regions' | 'gigs' | 'platforms' | 'charts' | 'x' | 'google' | 'settings' | 'youtube' | 'plaques' | 'grammys' | 'merch' | 'wrapped' | 'tour';
 
 export type AwardCategory = 'Artist of the Year' | 'Song of the Year' | 'Album of the Year' | 'Record of the Year' | 'Best Pop Album' | 'Best Pop Duo/Group Performance' | 'Best Country Album' | 'Best Rap Album';
 
@@ -206,7 +206,60 @@ export interface GameState {
      hours: number;
      countries: number;
   }[];
+  tours?: Tour[];
+  activeTourId?: string | null;
   isGodMode?: boolean;
+}
+
+export type VenueType = 'Cafe' | 'Arena' | 'Stadium';
+
+export interface TourSeatLevel {
+  level: number;
+  price: number;
+  capacity: number;
+  sold: number;
+}
+
+export interface Venue {
+  id: string;
+  name: string;
+  type: VenueType;
+  region: Region;
+  weeklyCost: number;
+  levels: number;
+  baseCapacityPerLevel: number[]; 
+  image: string;
+}
+
+export interface TourLeg {
+  id: string;
+  venueId: string;
+  shows: number; 
+  date: string; 
+  seatLevels: TourSeatLevel[];
+  preSaleStart: string;
+  preSaleEnd: string;
+  opener?: string;
+  openerCost?: number;
+  dailyRevenue: number;
+  dailyAttendance: number;
+  totalRevenue: number;
+  totalAttendance: number;
+  completed: boolean;
+}
+
+export interface Tour {
+  id: string;
+  name: string;
+  poster: string;
+  setlistName: string;
+  setlist: string[]; 
+  legs: TourLeg[];
+  status: 'Planning' | 'PreSale' | 'Ongoing' | 'Completed';
+  reviews?: number; 
+  totalRevenue: number;
+  totalCost: number;
+  totalAttendance: number;
 }
 
 export interface DailyReportData {
@@ -215,5 +268,9 @@ export interface DailyReportData {
   revenue: number;
   topSong: string | null;
   topAlbum: string | null;
+  tourRevenue?: number;
+  tourAttendance?: number;
+  tourName?: string;
+  tourStage?: string;
 }
 

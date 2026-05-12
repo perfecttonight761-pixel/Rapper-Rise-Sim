@@ -142,7 +142,7 @@ export function AlbumCardView({ album, gameState, onClose }: AlbumCardViewProps)
           {/* Top Banner */}
           <div className="flex flex-col sm:flex-row gap-8 p-6 sm:p-10 shrink-0">
              <div className="relative group shrink-0 mx-auto sm:mx-0">
-               <img src={album.coverImage} className="w-48 h-48 sm:w-64 sm:h-64 object-cover shadow-2xl rounded-lg" alt="Album Cover" />
+               <img src={album.coverImage || undefined} className="w-48 h-48 sm:w-64 sm:h-64 object-cover shadow-2xl rounded-lg" alt="Album Cover" />
                <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] rounded-lg" />
              </div>
              

@@ -17,7 +17,7 @@ export const TwitterPost = ({ profileName, handle, profileImage, tweetText, chil
     <div className="bg-black text-[#e7e9ea] p-4 max-w-xl mx-auto border border-gray-800 rounded-xl font-sans mt-4 text-left">
        <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden shrink-0 flex items-center justify-center">
-             {profileImage ? <img src={profileImage} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-red-500 to-red-900 border border-gray-600"></div>}
+             {profileImage ? <img src={profileImage || undefined} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-red-500 to-red-900 border border-gray-600"></div>}
           </div>
           <div className="flex flex-col leading-tight">
              <div className="font-bold flex items-center gap-1 text-[15px]">
@@ -61,7 +61,7 @@ export const SpotifyMilestoneCard = ({ albumCover, typeLabel, dateLabel, title, 
     <div className="flex w-[90%] sm:w-[85%] max-w-[500px] mx-auto bg-[#1b1464] text-white overflow-hidden rounded-2xl relative font-sans aspect-[2/1] border border-gray-800 items-stretch">
        {/* Left side album cover */}
        <div className="w-[45%] shrink-0 relative flex items-center justify-center overflow-hidden bg-black">
-          {albumCover ? <img src={albumCover} className="w-full h-full object-cover" /> : <span className="text-white/50 font-bold text-3xl">COVER</span>}
+          {albumCover ? <img src={albumCover || undefined} className="w-full h-full object-cover" /> : <span className="text-white/50 font-bold text-3xl">COVER</span>}
        </div>
        
        {/* Right side content */}
@@ -181,7 +181,7 @@ export const DetailedAlbumTrackerMedia = ({ album, playerName, currentDate, trac
            {/* Header Section */}
            <div className="flex flex-col sm:flex-row gap-3 mb-3">
               <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 shadow-xl relative rounded-md overflow-hidden bg-gray-900 border border-white/10 flex items-center justify-center">
-                 {album.coverImage ? <img src={album.coverImage} className="w-full h-full object-cover" /> : <div className="absolute inset-0 flex items-center justify-center text-white/50 font-bold tracking-widest text-[10px]">COVER</div>}
+                 {album.coverImage ? <img src={album.coverImage || undefined} className="w-full h-full object-cover" /> : <div className="absolute inset-0 flex items-center justify-center text-white/50 font-bold tracking-widest text-[10px]">COVER</div>}
               </div>
               <div className="flex flex-col flex-1 py-0.5 min-w-0">
                  <div className="mb-auto">
@@ -266,7 +266,7 @@ export const DebutTrackerMedia = ({ release, playerName }: { release: any; playe
        <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-purple-500 to-blue-500" />
        <div className="p-4 sm:p-5 flex flex-col items-center">
           <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-sm overflow-hidden mb-4 shadow-xl border border-white/10">
-             {release.coverImage ? <img src={release.coverImage} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-black"></div>}
+             {release.coverImage ? <img src={release.coverImage || undefined} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-black"></div>}
           </div>
           <h3 className="text-xl sm:text-3xl font-black uppercase tracking-tighter text-center leading-none mb-1">{release.title}</h3>
           <p className="text-sm sm:text-base text-gray-400 uppercase tracking-widest font-bold mb-4">{playerName}</p>
@@ -446,7 +446,7 @@ export const ChartPredictionMedia = ({ songs, playerName, stage = 'Early', curre
                      </div>
                      <div className="flex-1 flex items-center gap-1.5 pl-1 overflow-hidden">
                         <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-900 shrink-0 overflow-hidden rounded-[2px] relative border border-gray-700">
-                           {song.coverImage ? <img src={song.coverImage} className="w-full h-full object-cover" /> : <div className="absolute inset-0 flex border border-gray-800"></div>}
+                           {song.coverImage ? <img src={song.coverImage || undefined} className="w-full h-full object-cover" /> : <div className="absolute inset-0 flex border border-gray-800"></div>}
                         </div>
                         <div className="flex flex-col truncate leading-tight justify-center">
                            <span className={`font-bold truncate text-[9px] sm:text-[10px] ${song.isPlayer ? 'text-white' : 'text-gray-200'}`}>{song.title}</span>

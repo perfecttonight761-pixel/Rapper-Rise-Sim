@@ -80,7 +80,7 @@ export function ReleaseStatsPopup({ release, gameState, onClose }: ReleaseStatsP
         <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/5">
           <div className="flex items-center gap-4">
              <div className="w-16 h-16 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden">
-                {release.coverImage ? <img src={release.coverImage} className="w-full h-full object-cover" /> : <Music className="w-8 h-8 text-white/40" />}
+                {release.coverImage ? <img src={release.coverImage || undefined} className="w-full h-full object-cover" /> : <Music className="w-8 h-8 text-white/40" />}
              </div>
              <div>
                <h2 className="text-xl font-black">{release.title}</h2>

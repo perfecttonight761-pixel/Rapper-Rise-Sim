@@ -61,7 +61,7 @@ export function ChartsView({ gameState, onClose }: ChartsViewProps) {
          className="fixed top-4 left-4 w-12 h-12 flex items-center justify-center bg-black hover:bg-gray-800 text-white rounded-full transition-all shadow-md active:scale-95 z-[210]"
       >
          {gameState.artist?.image ? (
-            <img src={gameState.artist.image} className="w-full h-full object-cover rounded-full p-0.5" alt="Artist Profile" />
+            <img src={gameState.artist.image || undefined} className="w-full h-full object-cover rounded-full p-0.5" alt="Artist Profile" />
          ) : (
             <History className="w-5 h-5" />
          )}
@@ -144,7 +144,7 @@ export function ChartsView({ gameState, onClose }: ChartsViewProps) {
                      {/* Image */}
                      <div className="w-24 h-24 shrink-0 bg-[#b3b3b3] flex items-center justify-center overflow-hidden mr-4 md:mr-6">
                         {item.coverImage ? (
-                           <img src={item.coverImage} className="w-full h-full object-cover" alt="" />
+                           <img src={item.coverImage || undefined} className="w-full h-full object-cover" alt="" />
                         ) : (
                            <div className="w-full h-full bg-[#b3b3b3] flex items-center justify-center">
                               {isAlbumChart ? (

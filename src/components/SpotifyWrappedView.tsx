@@ -43,8 +43,7 @@ export const SpotifyWrappedView: React.FC<SpotifyWrappedViewProps> = ({ gameStat
             {/* Background geometric pattern for avatar */}
             <div className="absolute inset-[-20%] bg-[#E0FF00] z-0 rounded-full blur-md opacity-60" />
             <div className="w-full h-full relative z-10 bg-black overflow-hidden border-[6px] border-black rounded-3xl shadow-2xl">
-                <img 
-                    src={gameState.artist?.image || "https://images.unsplash.com/photo-1516280440502-6c243ebadbe9?w=500&h=500&fit=crop"} 
+                <img src={gameState.artist?.image || "https://images.unsplash.com/photo-1516280440502-6c243ebadbe9?w=500&h=500&fit=crop" || undefined} 
                     alt={gameState.artist?.name} 
                     className="w-full h-full object-cover" 
                 />
@@ -99,7 +98,7 @@ export const SpotifyWrappedView: React.FC<SpotifyWrappedViewProps> = ({ gameStat
            {latestWrapped.topSongs?.slice(0, 5).map((song, idx) => (
                <div key={idx} className={`bg-[#F5F5DC] p-2 flex flex-col relative border-2 border-white shadow-[2px_2px_10px_rgba(0,0,0,0.1)] ${idx === 0 ? 'col-span-2 p-3' : ''}`}>
                   <div className={`relative w-full mb-2 bg-gray-200 shadow-inner ${idx === 0 ? 'aspect-video' : 'aspect-square'}`}>
-                     {song.image ? <img src={song.image} alt={song.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-3xl">🎵</div>}
+                     {song.image ? <img src={song.image || undefined} alt={song.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-3xl">🎵</div>}
                      <div className="absolute top-2 left-2 bg-white text-black w-6 h-6 flex items-center justify-center font-black text-sm shadow-md z-10 leading-none">
                         {idx + 1}
                      </div>
@@ -137,7 +136,7 @@ export const SpotifyWrappedView: React.FC<SpotifyWrappedViewProps> = ({ gameStat
            {latestWrapped.topAlbums?.slice(0, 5).map((album, idx) => (
                <div key={idx} className={`bg-[#EFEBE9] p-2 flex flex-col relative border-2 border-white shadow-[2px_2px_10px_rgba(0,0,0,0.1)] rounded-xl ${idx === 0 ? 'col-span-2 p-3' : ''}`}>
                   <div className={`relative w-full mb-2 bg-[#D7CCC8] shadow-inner rounded-lg overflow-hidden border border-[#BCAAA4] ${idx === 0 ? 'aspect-video' : 'aspect-square'}`}>
-                     {album.image ? <img src={album.image} alt={album.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-5xl">💿</div>}
+                     {album.image ? <img src={album.image || undefined} alt={album.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-5xl">💿</div>}
                      <div className="absolute top-2 left-2 bg-white text-[#5D4037] w-6 h-6 flex items-center justify-center font-black text-sm shadow-md rounded-full z-10 leading-none">
                         {idx + 1}
                      </div>

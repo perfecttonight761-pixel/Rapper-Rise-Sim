@@ -70,7 +70,13 @@ export function YouTubeMusicView({ gameState }: YouTubeMusicViewProps) {
         const totalPlatStreams = publishedReleases.reduce((sum, r) => sum + getPlatformStreams(r), 0);
         const legacyListeners = totalPlatStreams > 0 ? (Math.pow(totalPlatStreams, 0.65) * 0.8) : 0; 
         
-        return Math.floor((activeListeners + legacyListeners) * (Math.random() * 0.05 + 0.95)) || 0;
+        const rawListeners = Math.floor((activeListeners + legacyListeners) * (Math.random() * 0.05 + 0.95)) || 0;
+        
+        let ceiling = 85000000;
+        if (rawListeners > ceiling) {
+           return Math.floor(ceiling + Math.pow(rawListeners - ceiling, 0.45) * 1500);
+        }
+        return rawListeners;
     };
 
     const getSubscribers = () => {

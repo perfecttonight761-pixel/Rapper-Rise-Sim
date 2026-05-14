@@ -205,11 +205,6 @@ export function XView({ gameState, setGameState, onClose }: XViewProps) {
          const latamSales = Math.floor((latestRelease.sales?.total || 0) * (gameState.popularity.latinAmerica / totPop));
          const euroSales = Math.floor((latestRelease.sales?.total || 0) * (gameState.popularity.europe / totPop));
 
-         const hashStr = latestRelease.id + latestRelease.title;
-         let hash = 0;
-         for(let i = 0; i < hashStr.length; i++) hash = Math.imul(31, hash) + hashStr.charCodeAt(i) | 0;
-         const spotPos = Math.max(1, Math.min(200, Math.floor(200 - (dS / 50000)) + Math.abs(hash % 20)));
-
          const tweetText = `${playerName} - ${latestRelease.title} (${latestRelease.type})
          
 Debut On Spotify: ${spotStr.toLocaleString()}
@@ -222,9 +217,7 @@ And Earned ${dS.toLocaleString()} Global Streams!
 Sold in each region:
 🇺🇸 US: ${usaSales.toLocaleString()}
 🌎 Latin America: ${latamSales.toLocaleString()}
-🇪🇺 Europe: ${euroSales.toLocaleString()}
-
-Debut On Spotify Daily Chart On Number #${spotPos}`;
+🇪🇺 Europe: ${euroSales.toLocaleString()}`;
 
          generatedTweets.push({
             id: '1.25',
@@ -801,12 +794,16 @@ Debut On Spotify Daily Chart On Number #${spotPos}`;
              <div className="flex justify-between items-center pt-3 border-t border-gray-800">
                 <div className="flex gap-4 text-[#1D9BF0]">
                    <label className="hover:bg-[#1D9BF0]/10 p-2 -m-2 rounded-full transition-colors cursor-pointer">
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                              const reader = new FileReader();
-                              reader.onload = ev => setNewTweetImage(ev.target?.result as string);
-                              reader.readAsDataURL(file);
+                              try {
+                                 const { compressImage } = await import('../imageUtils');
+                                 const compressed = await compressImage(file, 400, 400, 0.7);
+                                 setNewTweetImage(compressed);
+                              } catch(err) {
+                                  console.error(err);
+                              }
                           }
                       }} />
                       <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[20px] h-[20px] fill-current"><g><path d="M3 5.5C3 4.119 4.119 3 5.5 3h13C19.881 3 21 4.119 21 5.5v13c0 1.381-1.119 2.5-2.5 2.5h-13C4.119 21 3 19.881 3 18.5v-13zM5.5 5c-.276 0-.5.224-.5.5v9.086l3-3 3 3 5-5 3 3V5.5c0-.276-.224-.5-.5-.5h-13zM19 15.414l-3-3-5 5-3-3-3 3V18.5c0 .276.224.5.5.5h13c.276 0 .5-.224.5-.5v-3.086zM9.75 7C8.784 7 8 7.784 8 8.75s.784 1.75 1.75 1.75 1.75-.784 1.75-1.75S10.716 7 9.75 7z"></path></g></svg>

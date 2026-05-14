@@ -92,7 +92,19 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
     const legacyListeners = totalPlatStreams > 0 ? (Math.pow(totalPlatStreams, 0.65) * 0.8) : 0; 
     
     // Add real-world variance based on total listeners (not everyone listens actively)
-    return Math.floor((activeListeners + legacyListeners) * (Math.random() * 0.05 + 0.95)) || 0;
+    const rawListeners = Math.floor((activeListeners + legacyListeners) * (Math.random() * 0.05 + 0.95)) || 0;
+    
+    // Smooth cap to prevent unrealistic monthly listeners in endgame (e.g. 250M - 1B listeners)
+    let ceiling = 115000000;
+    if (plat === 'appleMusic') ceiling = 75000000;
+    if (plat === 'amazonMusic') ceiling = 60000000;
+    if (plat === 'youtubeMusic') ceiling = 85000000;
+
+    if (rawListeners > ceiling) {
+       return Math.floor(ceiling + Math.pow(rawListeners - ceiling, 0.45) * 1500);
+    }
+    
+    return rawListeners;
   };
 
   const getTopSongs = (plat: 'spotify' | 'appleMusic' | 'youtubeMusic' | 'amazonMusic', limit: number = 5) => {

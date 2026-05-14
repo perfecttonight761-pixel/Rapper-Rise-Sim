@@ -12,11 +12,11 @@ export function AlbumSalesChart({ gameState, onClose }: AlbumSalesChartProps) {
     .filter(r => r.type === 'Album' && r.status === 'Published') as Album[];
 
   const albumData = albums.map(album => {
-     const pureSales = (album.sales?.physical || 0) + (album.sales?.digital || 0);
-     return { ...album, pureSales };
-  }).sort((a, b) => b.pureSales - a.pureSales);
+     const totalSales = album.sales?.total || 0;
+     return { ...album, totalSales };
+  }).sort((a, b) => b.totalSales - a.totalSales);
 
-  const totalPureSales = albumData.reduce((sum, a) => sum + a.pureSales, 0);
+  const overallTotalSales = albumData.reduce((sum, a) => sum + a.totalSales, 0);
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
@@ -28,7 +28,7 @@ export function AlbumSalesChart({ gameState, onClose }: AlbumSalesChartProps) {
     return num.toString();
   };
 
-  const maxSales = albumData.length > 0 ? albumData[0].pureSales : 1;
+  const maxSales = albumData.length > 0 ? albumData[0].totalSales : 1;
 
   return (
     <div className="fixed inset-0 z-50 bg-white overflow-y-auto overflow-x-hidden flex flex-col p-6 animate-fade-in text-black">
@@ -50,7 +50,7 @@ export function AlbumSalesChart({ gameState, onClose }: AlbumSalesChartProps) {
             {gameState.artist?.name}&apos;S ALBUM SALES BAR CHART
           </h1>
           <h2 className="text-2xl md:text-3xl font-black mt-2 tracking-tight">
-            {formatNumber(totalPureSales)} UNITS SOLD
+            {formatNumber(overallTotalSales)} UNITS SOLD
           </h2>
           <p className="text-gray-500 font-bold mt-2 tracking-wide text-lg">
             @{gameState.artist?.name.replace(/\s+/g, '') || "Artist"}
@@ -62,12 +62,12 @@ export function AlbumSalesChart({ gameState, onClose }: AlbumSalesChartProps) {
       {albumData.length > 0 ? (
           <div className="flex flex-row items-end justify-start md:justify-center gap-4 md:gap-6 w-full max-w-6xl mx-auto h-[45vh] md:h-[50vh] pb-4 overflow-x-auto hide-scrollbar px-4 md:px-10">
             {albumData.map((album) => {
-              const heightPercent = Math.max((album.pureSales / maxSales) * 100, 15); // min 15% height
+              const heightPercent = Math.max((album.totalSales / maxSales) * 100, 15); // min 15% height
               return (
                 <div key={album.id} className="flex flex-col items-center justify-end h-full gap-3 shrink-0" style={{ width: 'clamp(90px, 14vw, 150px)' }}>
                   <div className="flex flex-col items-center text-center gap-1">
                     <span className="text-2xl md:text-3xl font-black tracking-tighter leading-none">
-                      {formatNumber(album.pureSales)}
+                      {formatNumber(album.totalSales)}
                     </span>
                     <span className="text-[10px] md:text-xs font-black uppercase tracking-widest leading-tight px-1">
                       {album.title}

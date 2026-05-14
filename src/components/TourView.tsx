@@ -176,12 +176,16 @@ export function TourView({ gameState, setGameState, currentDate }: TourViewProps
                       <input 
                         type="file" 
                         accept="image/*"
-                        onChange={(e) => {
+                        onChange={async (e) => {
                            const file = e.target.files?.[0];
                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (ev) => setPosterUrl(ev.target?.result as string);
-                              reader.readAsDataURL(file);
+                              try {
+                                 const { compressImage } = await import('../imageUtils');
+                                 const compressed = await compressImage(file, 400, 400, 0.7);
+                                 setPosterUrl(compressed);
+                              } catch (err) {
+                                 console.error(err);
+                              }
                            }
                         }}
                         className="w-full bg-black/40 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-500"
@@ -275,7 +279,14 @@ export function TourView({ gameState, setGameState, currentDate }: TourViewProps
                              const isSelected = selectedMultiVenueIds.includes(v.id);
                              return (
                                <div key={v.id} onClick={() => { 
-                                  setSelectedMultiVenueIds(p => isSelected ? p.filter(id => id !== v.id) : [...p, v.id]);
+                                           setSelectedMultiVenueIds(p => {
+                                             if (isSelected) return p.filter(id => id !== v.id);
+                                             if (p.length >= 4) {
+                                                alert("You can only select up to 4 stages per tour.");
+                                                return p;
+                                             }
+                                             return [...p, v.id];
+                                          });
                                }} className={`group relative bg-white/5 border rounded-xl overflow-hidden cursor-pointer transition-all ${isSelected ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'border-white/10 hover:border-white/30'}`}>
                                   <div className="aspect-video relative">
                                      {v.image ? (
@@ -301,8 +312,8 @@ export function TourView({ gameState, setGameState, currentDate }: TourViewProps
 
                  <div className="flex gap-4">
                     <button onClick={() => setStep(2)} className="w-1/3 py-4 bg-white/10 hover:bg-white/20 text-white font-black uppercase tracking-widest rounded-xl transition-colors">Back</button>
-                    <button disabled={selectedMultiVenueIds.length < 8} onClick={() => setStep(4)} className="flex-1 py-4 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-black uppercase tracking-widest rounded-xl transition-colors">
-                       Next: Schedule Dates ({selectedMultiVenueIds.length} / 8+ Selected)
+                    <button disabled={selectedMultiVenueIds.length === 0} onClick={() => setStep(4)} className="flex-1 py-4 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-black uppercase tracking-widest rounded-xl transition-colors">
+                       Next: Schedule Dates ({selectedMultiVenueIds.length} / 4 Max Selection)
                     </button>
                  </div>
               </div>
@@ -464,11 +475,7 @@ export function TourView({ gameState, setGameState, currentDate }: TourViewProps
                                  <div className="space-y-6">
                                     <div>
                                        <label className="block text-xs font-bold uppercase tracking-widest text-white mb-2">Number of Shows</label>
-                                       <select value={showsCount} onChange={(e) => setShowsCount(Number(e.target.value))} className="w-full bg-white text-black font-bold rounded-xl px-4 py-3 focus:outline-none">
-                                          <option value={1}>1 Show</option>
-                                          <option value={2}>2 Shows</option>
-                                          <option value={3}>3 Shows</option>
-                                       </select>
+                                       <input type="number" min="1" max="15" value={showsCount} onChange={(e) => setShowsCount(Math.max(1, Math.min(15, Number(e.target.value))))} className="w-full bg-white text-black font-bold rounded-xl px-4 py-3 focus:outline-none" />
                                     </div>
 
                                     {Array.from({length: currentSchedVenue?.levels || 1}).map((_, i) => (
@@ -715,23 +722,26 @@ export function TourView({ gameState, setGameState, currentDate }: TourViewProps
                  </div>
               ) : (
                  (gameState.tours || []).filter(t => t.status === 'Completed').map(t => (
-                    <div key={t.id} className="bg-white/5 border border-white/10 p-6 rounded-2xl flex justify-between items-center">
-                       <div className="flex items-center gap-4">
+                    <div key={t.id} className="bg-white/5 border border-white/10 p-4 sm:p-6 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4 overflow-hidden relative group hover:bg-white/10 transition-colors">
+                       <div className="flex items-start md:items-center gap-4 w-full md:w-auto">
                           {t.poster ? (
-                             <img src={t.poster || undefined} className="w-20 h-20 rounded-xl object-cover" />
+                             <img src={t.poster || undefined} className="w-16 h-16 md:w-20 md:h-20 rounded-xl object-cover shrink-0 bg-black/40 border border-white/10" />
                           ) : (
-                             <div className="w-20 h-20 rounded-xl bg-white/10" />
+                             <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white/10 shrink-0" />
                           )}
-                          <div>
-                             <h4 className="text-xl font-bold text-white mb-1">{t.name}</h4>
-                             <div className="text-sm text-white/50">{t.legs.length} Stops • {t.totalAttendance.toLocaleString()} Tickets Sold</div>
+                          <div className="flex-1 min-w-0 pr-2">
+                             <h4 className="text-lg md:text-xl font-bold text-white mb-0.5 md:mb-1 truncate">{t.name}</h4>
+                             <div className="text-xs md:text-sm text-white/50 truncate">
+                               {t.legs.length} Stops • {t.totalAttendance.toLocaleString()} Tickets Sold
+                             </div>
+                             <div className="text-[10px] md:text-xs font-medium text-white/70 mt-1 truncate">
+                               Setlist: {t.setlistName} ({t.setlist.length} Songs)
+                             </div>
                           </div>
                        </div>
-                       <div className="text-right">
-                          <div className="text-xs uppercase tracking-widest text-white/40 mb-1">Total Revenue</div>
-                          <div className="text-2xl font-mono text-green-400">${t.totalRevenue.toLocaleString()}</div>
-                          <div className="text-xs uppercase tracking-widest text-white/40 mt-2">Setlist</div>
-                          <div className="text-sm font-medium text-white">{t.setlistName} ({t.setlist.length} Songs)</div>
+                       <div className="border-t border-white/5 pt-3 sm:border-t-0 sm:pt-0 flex flex-row sm:flex-col justify-between sm:justify-center items-center sm:items-end w-full sm:w-auto shrink-0">
+                          <div className="text-[10px] md:text-xs uppercase tracking-widest text-white/40 mb-0 sm:mb-1">Total Revenue</div>
+                          <div className="text-lg md:text-2xl font-mono text-green-400">${t.totalRevenue.toLocaleString()}</div>
                        </div>
                     </div>
                  ))

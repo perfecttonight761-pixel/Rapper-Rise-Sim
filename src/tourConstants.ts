@@ -115,5 +115,85 @@ export const AREA_VENUES: Venue[] = [
     levels: 5,
     baseCapacityPerLevel: [10000, 15000, 20000, 16000, 17838], // 78,838 total
     image: 'https://images.unsplash.com/photo-1555029304-432a938c5f59?w=800&q=80'
+  },
+  {
+    id: 'venue_america_stadium_3',
+    name: 'AT&T Stadium (TX)',
+    type: 'Stadium',
+    region: 'America',
+    weeklyCost: 2900000,
+    levels: 5,
+    baseCapacityPerLevel: [15000, 15000, 20000, 15000, 15000], // 80,000 total
+    image: 'https://images.unsplash.com/photo-1540821924489-73fb46e12e2c?w=800&q=80'
+  },
+  {
+    id: 'venue_america_stadium_4',
+    name: 'Allegiant Stadium (NV)',
+    type: 'Stadium',
+    region: 'America',
+    weeklyCost: 3500000,
+    levels: 5,
+    baseCapacityPerLevel: [10000, 10000, 15000, 15000, 15000], // 65,000 total
+    image: 'https://images.unsplash.com/photo-1555029304-432a938c5f59?w=800&q=80'
+  },
+  {
+    id: 'venue_europe_stadium_2',
+    name: 'Stade de France (Paris)',
+    type: 'Stadium',
+    region: 'Europe',
+    weeklyCost: 3000000,
+    levels: 5,
+    baseCapacityPerLevel: [15000, 15000, 20000, 15000, 16338], // 81,338 total
+    image: 'https://images.unsplash.com/photo-1521251325852-c28dd6fb1bfa?w=800&q=80'
+  },
+  {
+    id: 'venue_europe_stadium_3',
+    name: 'Olympiastadion (Berlin)',
+    type: 'Stadium',
+    region: 'Europe',
+    weeklyCost: 2800000,
+    levels: 5,
+    baseCapacityPerLevel: [10000, 15000, 20000, 14000, 15453], // 74,453 total
+    image: 'https://images.unsplash.com/photo-1616853683833-288d6c703eb8?w=800&q=80'
+  },
+  {
+    id: 'venue_europe_stadium_4',
+    name: 'Camp Nou (Barcelona)',
+    type: 'Stadium',
+    region: 'Europe',
+    weeklyCost: 3500000,
+    levels: 5,
+    baseCapacityPerLevel: [18000, 20000, 25000, 20000, 16354], // 99,354 total
+    image: 'https://images.unsplash.com/photo-1517462310114-1e0f0dfd1010?w=800&q=80'
+  },
+  {
+    id: 'venue_latin_stadium_2',
+    name: 'Estadio Azteca (Mexico City)',
+    type: 'Stadium',
+    region: 'Latin America',
+    weeklyCost: 2000000,
+    levels: 5,
+    baseCapacityPerLevel: [15000, 18000, 25000, 15000, 14539], // 87,539 total
+    image: 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=800&q=80'
+  },
+  {
+    id: 'venue_latin_stadium_3',
+    name: 'Estadio Monumental (Buenos Aires)',
+    type: 'Stadium',
+    region: 'Latin America',
+    weeklyCost: 2200000,
+    levels: 5,
+    baseCapacityPerLevel: [15000, 18000, 20000, 15000, 15000], // 83,000 total
+    image: 'https://images.unsplash.com/photo-1621255569420-53bc354ab5ff?w=800&q=80'
+  },
+  {
+    id: 'venue_latin_stadium_4',
+    name: 'Estadio Nacional (Santiago)',
+    type: 'Stadium',
+    region: 'Latin America',
+    weeklyCost: 1500000,
+    levels: 5,
+    baseCapacityPerLevel: [8000, 10000, 12000, 10000, 8665], // 48,665 total
+    image: 'https://images.unsplash.com/photo-1621748888764-ee0d1ce2b9df?w=800&q=80'
   }
 ];

@@ -104,31 +104,65 @@ export default function App() {
     }
   }, []);
 
+  const saveGameData = (slotId: string, stateToSave: GameState, isAutoSave: boolean = false) => {
+    let internalState = JSON.parse(JSON.stringify(stateToSave)) as GameState;
+    let success = false;
+    let attempts = 0;
+
+    while (!success && attempts < 3) {
+       try {
+          localStorage.setItem('musician_simulator_save_' + slotId, JSON.stringify(internalState));
+          localStorage.setItem('musician_simulator_last_save_id', slotId);
+          setSaveProfiles(prev => {
+            let updated = [...prev];
+            const existIdx = updated.findIndex(s => s?.id === slotId);
+            if (existIdx >= 0) {
+              updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: internalState.artist?.name || 'Unknown' };
+            } else {
+              updated.push({ id: slotId, artistName: internalState.artist?.name || 'Unknown', lastPlayed: Date.now() });
+            }
+            localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
+            return updated;
+          });
+          success = true;
+          if (!isAutoSave) alert(`Game saved to Slot!`);
+       } catch (e: any) {
+          attempts++;
+          if (e instanceof DOMException && e.code === 22) { // QuotaExceededError
+              if (attempts === 1) {
+                  // Strategy 1: Wipe customTweets, keep fewer gigs
+                  if (internalState.artist?.socialProfile) {
+                     internalState.artist.socialProfile.customTweets = [];
+                  }
+                  if (internalState.gigs) {
+                     internalState.gigs = internalState.gigs.filter(g => !g.completed);
+                  }
+                  if (internalState.wrappedHistory) {
+                     internalState.wrappedHistory = [];
+                  }
+              } else if (attempts === 2) {
+                  // Strategy 2: Strip ALL release cover images and venue images
+                  internalState.releases = internalState.releases.map(r => ({ ...r, coverImage: '' }));
+                  if (internalState.tours) {
+                      internalState.tours = internalState.tours.map(t => ({ ...t, poster: '' }));
+                  }
+              }
+          } else {
+              break; // unknown error
+          }
+       }
+    }
+
+    if (!success) {
+      if (isAutoSave) setIsAutoAdvancing(false);
+      alert("Storage quota exceeded! Save failed. Please delete an older save slot to continue.");
+    }
+  };
+
   useEffect(() => {
     // Auto-save whenever gameState changes
     if (gameState && currentSaveId) {
-      try {
-        localStorage.setItem('musician_simulator_save_' + currentSaveId, JSON.stringify(gameState));
-        localStorage.setItem('musician_simulator_last_save_id', currentSaveId);
-        
-        setSaveProfiles(prev => {
-          let updated = [...prev];
-          const existIdx = updated.findIndex(s => s?.id === currentSaveId);
-          if (existIdx >= 0) {
-            updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: gameState.artist?.name || 'Unknown' };
-          } else {
-            updated.push({ id: currentSaveId, artistName: gameState.artist?.name || 'Unknown', lastPlayed: Date.now() });
-          }
-          localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
-          return updated;
-        });
-      } catch (e) {
-        console.error("Failed to auto-save", e);
-        setIsAutoAdvancing(false);
-        if (e instanceof DOMException && e.code === 22) { // QuotaExceededError
-           alert("Storage quota exceeded! Auto-advance has stopped. Please delete an older save slot from the save/load menu to continue saving.");
-        }
-      }
+      saveGameData(currentSaveId, gameState, true);
     }
   }, [gameState, currentSaveId]);
 
@@ -425,6 +459,15 @@ export default function App() {
                  rawStreamsTotal = 15000000 + Math.pow(rawStreamsTotal - 15000000, 0.65); 
             }
             
+            // SUPERSTAR CATALOG FLOOR:
+            // The player complained that Level 10+ artists with max popularity get 800 plays on old songs.
+            // Taylor Swift's worst old flop gets ~20k-40k minimum. This enforces a realistic bottom for established acts.
+            const globalPopForFloor = Math.max(1, (gameState.popularity?.america || 0) + (gameState.popularity?.europe || 0) + (gameState.popularity?.latinAmerica || 0));
+            const superstarHardFloor = isSong ? Math.floor((globalPopForFloor / 100) * artistLevel * 220) : Math.floor((globalPopForFloor / 100) * artistLevel * 550); 
+            if (rawStreamsTotal < superstarHardFloor && daysSinceRelease > 14) { 
+                rawStreamsTotal = Math.max(rawStreamsTotal, superstarHardFloor * (Math.random() * 0.2 + 0.9));
+            }
+
             let dStreamsTotal = Math.floor(rawStreamsTotal);
 
             // Occasional viral spike (0.5% chance per day after day 10)
@@ -569,7 +612,7 @@ export default function App() {
       let newLatinPop = gameState.popularity?.latinAmerica || 0;
       let newEuropePop = gameState.popularity?.europe || 0;
       
-      const updatedGigs = (gameState.gigs || []).map(gig => {
+      let updatedGigs = (gameState.gigs || []).map(gig => {
         if (!gig.completed && new Date(gig.date) <= currentDateObj) {
            gigPayouts += gig.payout;
            if (gig.region === 'America') newAmériquePop = Math.min(100, newAmériquePop + gig.popularityGain);
@@ -632,7 +675,7 @@ export default function App() {
                    else if (daysSinceStart > totalDays - 7) dayMultiplier = 1.5; // Final week rush
                    
                    // Total max people wanting to buy a ticket today
-                   const totalDailyShowDemand = (popDemand * 0.15 + 10) * levelMultiplier * dayMultiplier * (0.8 + Math.random() * 0.4);
+                   const totalDailyShowDemand = (popDemand * 0.4 + (popToUse * 20)) * dayMultiplier * (0.8 + Math.random() * 0.4) * (1 + (levelMultiplier * 0.05));
                    let remainingDailyDemand = Math.floor(totalDailyShowDemand);
 
                    const newSeatLevels = leg.seatLevels.map(sl => {
@@ -849,6 +892,14 @@ export default function App() {
         const nextSales = (prev.stats.sales || 0) + dailySales;
         const completedGigsCount = updatedGigs.filter(g => g.completed).length;
 
+        // Limit total gigs memory footprint
+        if (updatedGigs.length > 150) {
+           const incomplete = updatedGigs.filter(g => !g.completed);
+           const completed = updatedGigs.filter(g => g.completed);
+           // Keep all incomplete, and only the newest 100 completed
+           updatedGigs = [...incomplete, ...completed.slice(Math.max(0, completed.length - 100))];
+        }
+
         while (currentLvl < 10) {
            const req = LEVEL_REQUIREMENTS[currentLvl + 1];
            if (!req) break;
@@ -949,6 +1000,10 @@ export default function App() {
         // Count player wins to update stats
         let totalPlayerWinsAtCeremony = 0;
         let newCustomTweets = [...(prev.artist?.socialProfile?.customTweets || [])];
+        if (newCustomTweets.length > 50) {
+           newCustomTweets = newCustomTweets.slice(0, 50); // Keep only the 50 most recent tweets
+        }
+
         if (currentGrammys.stage === 'Nominations' && nextGrammys.stage === 'Ceremony') {
            const winningCats = nextGrammys.results.filter(cat => {
               const winnerNominee = cat.nominees.find(n => n?.id === cat.winnerId);
@@ -1343,26 +1398,8 @@ export default function App() {
                               <button 
                                 onClick={() => {
                                   if (confirm(`Overwrite Slot ${slotNum} with your current game?`)) {
-                                     // Sync save immediately
-                                     try {
-                                        localStorage.setItem('musician_simulator_save_' + slotId, JSON.stringify(gameState));
-                                        localStorage.setItem('musician_simulator_last_save_id', slotId);
-                                        setSaveProfiles(prev => {
-                                          let updated = [...prev];
-                                          const existIdx = updated.findIndex(s => s?.id === slotId);
-                                          if (existIdx >= 0) {
-                                            updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: gameState.artist?.name || 'Unknown' };
-                                          } else {
-                                            updated.push({ id: slotId, artistName: gameState.artist?.name || 'Unknown', lastPlayed: Date.now() });
-                                          }
-                                          localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
-                                          return updated;
-                                        });
-                                        setCurrentSaveId(slotId);
-                                        alert(`Game saved to Slot ${slotNum}!`);
-                                     } catch (err) {
-                                        alert("Failed to save game. Storage might be full.");
-                                     }
+                                     setCurrentSaveId(slotId);
+                                     saveGameData(slotId, gameState, false);
                                   }
                                 }}
                                 className="w-full bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors"
@@ -1405,25 +1442,8 @@ export default function App() {
                            {gameState && (
                               <button 
                                 onClick={() => {
-                                   try {
-                                      localStorage.setItem('musician_simulator_save_' + slotId, JSON.stringify(gameState));
-                                      localStorage.setItem('musician_simulator_last_save_id', slotId);
-                                      setSaveProfiles(prev => {
-                                        let updated = [...prev];
-                                        const existIdx = updated.findIndex(s => s?.id === slotId);
-                                        if (existIdx >= 0) {
-                                          updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: gameState.artist?.name || 'Unknown' };
-                                        } else {
-                                          updated.push({ id: slotId, artistName: gameState.artist?.name || 'Unknown', lastPlayed: Date.now() });
-                                        }
-                                        localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
-                                        return updated;
-                                      });
-                                      setCurrentSaveId(slotId);
-                                      alert(`Game saved to Slot ${slotNum}!`);
-                                   } catch(err) {
-                                      alert("Failed to save. Storage might be full.");
-                                   }
+                                   setCurrentSaveId(slotId);
+                                   saveGameData(slotId, gameState, false);
                                 }}
                                 className="w-full bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors mb-2"
                               >
@@ -1818,7 +1838,7 @@ function CreateArtistScreen({ onSubmit }: { onSubmit: (data: GameState['artist']
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_SIZE = 400;
+          const MAX_SIZE = 250;
           let width = img.width;
           let height = img.height;
           if (width > height) {
@@ -1836,7 +1856,7 @@ function CreateArtistScreen({ onSubmit }: { onSubmit: (data: GameState['artist']
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          setImageContent(canvas.toDataURL('image/jpeg', 0.7));
+          setImageContent(canvas.toDataURL('image/jpeg', 0.6));
         };
         img.src = reader.result as string;
       };

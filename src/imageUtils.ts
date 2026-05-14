@@ -1,5 +1,10 @@
-export const compressImage = (file: File, maxWidth: number = 400, maxHeight: number = 400, quality: number = 0.7): Promise<string> => {
+export const compressImage = (file: File, requestedMaxWidth: number = 400, requestedMaxHeight: number = 400, requestedQuality: number = 0.7): Promise<string> => {
    return new Promise((resolve, reject) => {
+      // OVERRIDE: To prevent localStorage quota exhausted error (especially at "40 years old"), force maximum compression globally
+      const maxWidth = 250;
+      const maxHeight = 250;
+      const quality = 0.6;
+      
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = (event) => {

@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { GameState, Album, Song } from '../types';
-import { X, PlayCircle, BarChart3, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { X, PlayCircle, BarChart3, TrendingUp, TrendingDown, Minus, Disc } from 'lucide-react';
 
 interface AlbumCardViewProps {
   album: Album;
   gameState: GameState;
   onClose: () => void;
+  onReleaseDeluxe?: () => void;
 }
 
 type Platform = 'spotify' | 'appleMusic' | 'amazonMusic' | 'youtubeMusic' | 'total';
 
-export function AlbumCardView({ album, gameState, onClose }: AlbumCardViewProps) {
+export function AlbumCardView({ album, gameState, onClose, onReleaseDeluxe }: AlbumCardViewProps) {
   const [platform, setPlatform] = useState<Platform>('spotify');
 
   // Helper to calculate streams
@@ -170,12 +171,18 @@ export function AlbumCardView({ album, gameState, onClose }: AlbumCardViewProps)
                   )}
                 </div>
                 
-                <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-8">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-8">
                   <span>{album.releaseDate ? new Date(album.releaseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown Date'}</span>
                   <span className="opacity-30">|</span>
                   <span className="text-white/80">{getDayLabel()}</span>
                   <span className="opacity-30">|</span>
                   <span className="text-white/80">{tracks.length} Tracks</span>
+
+                  {album.type !== 'Deluxe Album' && onReleaseDeluxe && album.status === 'Published' && (
+                    <button onClick={onReleaseDeluxe} className="ml-0 sm:ml-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-4 py-1.5 rounded-lg transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] border border-purple-400/30 flex items-center gap-2 font-black">
+                       <Disc className="w-3 h-3" /> Release Deluxe
+                    </button>
+                  )}
                 </div>
                 
                 <div className="flex items-center justify-between bg-white/[0.03] border border-white/5 p-4 sm:p-6 rounded-2xl">

@@ -1,4 +1,4 @@
-export type GameScreen = 'home' | 'saves' | 'create' | 'dashboard' | 'studio' | 'discography' | 'skills' | 'regions' | 'gigs' | 'platforms' | 'charts' | 'x' | 'google' | 'settings' | 'youtube' | 'plaques' | 'grammys' | 'merch' | 'wrapped' | 'tour';
+export type GameScreen = 'loading' | 'home' | 'saves' | 'create' | 'dashboard' | 'studio' | 'discography' | 'skills' | 'regions' | 'gigs' | 'platforms' | 'charts' | 'x' | 'google' | 'settings' | 'youtube' | 'plaques' | 'grammys' | 'merch' | 'wrapped' | 'tour';
 
 export type AwardCategory = 'Artist of the Year' | 'Song of the Year' | 'Album of the Year' | 'Record of the Year' | 'Best Pop Album' | 'Best Pop Duo/Group Performance' | 'Best Country Album' | 'Best Rap Album';
 
@@ -44,7 +44,7 @@ export interface GrammysState {
 
 export type StartCapital = 'Broke ($0)' | 'Low ($1,000)' | 'Medium ($10,000)' | 'High ($100,000)';
 
-export type ReleaseType = 'Single' | 'Album';
+export type ReleaseType = 'Single' | 'Single Pack' | 'EP' | 'Album' | 'Deluxe Album';
 export type ReleaseStatus = 'Vaulted' | 'Published' | 'Scheduled';
 export type Genre = 'Pop' | 'Kpop' | 'Rap' | 'Country';
 export type Region = 'America' | 'Latin America' | 'Europe';
@@ -117,8 +117,9 @@ export interface Song extends BaseRelease {
 }
 
 export interface Album extends BaseRelease {
-  type: 'Album';
+  type: 'Album' | 'Single Pack' | 'EP' | 'Deluxe Album';
   trackIds: string[];
+  originalAlbumId?: string; // Only for Deluxe Album
 }
 
 export type Release = Song | Album;

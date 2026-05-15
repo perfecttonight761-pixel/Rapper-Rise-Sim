@@ -279,6 +279,7 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
 function CreateAlbumForm({ gameState, setGameState, currentDate }: StudioViewProps) {
   const [cover, setCover] = useState('');
   const [title, setTitle] = useState('');
+  const [albumType, setAlbumType] = useState<'Single Pack' | 'EP' | 'Album'>('Album');
   const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
   const [scheduleDays, setScheduleDays] = useState<number>(30);
 
@@ -307,7 +308,15 @@ function CreateAlbumForm({ gameState, setGameState, currentDate }: StudioViewPro
 
   const handleCreate = (status: ReleaseStatus) => {
     if (!title.trim()) return alert("Enter title");
-    if (selectedTracks.length === 0) return alert("Select at least 1 track");
+
+    let minTracks = 1;
+    let maxTracks = 100;
+    if (albumType === 'Single Pack') { minTracks = 1; maxTracks = 3; }
+    if (albumType === 'EP') { minTracks = 4; maxTracks = 7; }
+    if (albumType === 'Album') { minTracks = 8; }
+
+    if (selectedTracks.length < minTracks) return alert(`Select at least ${minTracks} track(s) for a ${albumType}`);
+    if (selectedTracks.length > maxTracks) return alert(`Maximum ${maxTracks} tracks for a ${albumType}`);
 
     const releaseDateObj = new Date(currentDate);
     if (status === 'Scheduled') {
@@ -318,7 +327,7 @@ function CreateAlbumForm({ gameState, setGameState, currentDate }: StudioViewPro
       id: 'album_' + Date.now(),
       title,
       coverImage: cover,
-      type: 'Album',
+      type: albumType,
       status,
       releaseDate: status === 'Vaulted' ? null : releaseDateObj.toISOString(),
       streams: { spotify: 0, appleMusic: 0, amazonMusic: 0, youtubeMusic: 0, total: 0 },
@@ -335,7 +344,7 @@ function CreateAlbumForm({ gameState, setGameState, currentDate }: StudioViewPro
       }
     });
 
-    alert(status === 'Published' ? "Album Released!" : (status === 'Scheduled' ? "Album Scheduled!" : "Album Vaulted!"));
+    alert(status === 'Published' ? `${albumType} Released!` : (status === 'Scheduled' ? `${albumType} Scheduled!` : `${albumType} Vaulted!`));
     setTitle('');
     setCover('');
     setSelectedTracks([]);
@@ -357,8 +366,16 @@ function CreateAlbumForm({ gameState, setGameState, currentDate }: StudioViewPro
         </label>
         <div className="flex-1 space-y-4 mt-4">
           <div>
-            <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Album Title</label>
-            <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 focus:bg-white/5 transition-all font-mono" placeholder="Album Name" />
+            <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Title</label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 focus:bg-white/5 transition-all font-mono" placeholder="Release Name" />
+          </div>
+          <div>
+             <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Type</label>
+             <div className="flex gap-2">
+                <button onClick={() => setAlbumType('Single Pack')} className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase transition-colors border ${albumType === 'Single Pack' ? 'bg-purple-600/20 text-purple-400 border-purple-500/30' : 'bg-transparent text-white/40 border-white/10 hover:border-white/30'}`}>Single Pack (1-3)</button>
+                <button onClick={() => setAlbumType('EP')} className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase transition-colors border ${albumType === 'EP' ? 'bg-purple-600/20 text-purple-400 border-purple-500/30' : 'bg-transparent text-white/40 border-white/10 hover:border-white/30'}`}>EP (4-7)</button>
+                <button onClick={() => setAlbumType('Album')} className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase transition-colors border ${albumType === 'Album' ? 'bg-purple-600/20 text-purple-400 border-purple-500/30' : 'bg-transparent text-white/40 border-white/10 hover:border-white/30'}`}>Album (8+)</button>
+             </div>
           </div>
         </div>
       </div>

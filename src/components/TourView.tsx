@@ -281,10 +281,6 @@ export function TourView({ gameState, setGameState, currentDate }: TourViewProps
                                <div key={v.id} onClick={() => { 
                                            setSelectedMultiVenueIds(p => {
                                              if (isSelected) return p.filter(id => id !== v.id);
-                                             if (p.length >= 4) {
-                                                alert("You can only select up to 4 stages per tour.");
-                                                return p;
-                                             }
                                              return [...p, v.id];
                                           });
                                }} className={`group relative bg-white/5 border rounded-xl overflow-hidden cursor-pointer transition-all ${isSelected ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'border-white/10 hover:border-white/30'}`}>
@@ -312,8 +308,8 @@ export function TourView({ gameState, setGameState, currentDate }: TourViewProps
 
                  <div className="flex gap-4">
                     <button onClick={() => setStep(2)} className="w-1/3 py-4 bg-white/10 hover:bg-white/20 text-white font-black uppercase tracking-widest rounded-xl transition-colors">Back</button>
-                    <button disabled={selectedMultiVenueIds.length === 0} onClick={() => setStep(4)} className="flex-1 py-4 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-black uppercase tracking-widest rounded-xl transition-colors">
-                       Next: Schedule Dates ({selectedMultiVenueIds.length} / 4 Max Selection)
+                    <button disabled={selectedMultiVenueIds.length < 4} onClick={() => setStep(4)} className="flex-1 py-4 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-black uppercase tracking-widest rounded-xl transition-colors">
+                       Next: Schedule Dates ({selectedMultiVenueIds.length} / Min 4)
                     </button>
                  </div>
               </div>
@@ -605,7 +601,6 @@ export function TourView({ gameState, setGameState, currentDate }: TourViewProps
                 </div>
              </div>
 
-             {/* Legs Stats as Accordion */}
              <div className="flex flex-col gap-3">
                  <h3 className="text-lg font-bold text-white uppercase tracking-widest px-2 mb-2">Tour Dates</h3>
                  {activeTour.legs.map((leg, idx) => {

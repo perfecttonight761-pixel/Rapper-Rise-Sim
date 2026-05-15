@@ -190,7 +190,8 @@ export function XView({ gameState, setGameState, onClose }: XViewProps) {
 
       const releaseDateTime = latestRelease.releaseDate ? new Date(latestRelease.releaseDate).getTime() : new Date(gameState.time.startDate).getTime();
       const daysSinceRelease = Math.max(0, Math.floor((currentDate.getTime() - releaseDateTime) / (1000 * 3600 * 24)));
-      const dailyAvg = latestRelease.lastDailyStreams?.total || Math.floor((latestRelease.streams.total || 0) / Math.max(1, daysSinceRelease));
+      const dailyAvgGlobal = latestRelease.lastDailyStreams?.total || Math.floor((latestRelease.streams.total || 0) / Math.max(1, daysSinceRelease));
+      const dailyAvgSpotify = latestRelease.lastDailyStreams?.spotify || Math.floor((latestRelease.streams.spotify || 0) / Math.max(1, daysSinceRelease));
 
       // Debut Streams & Sales Tweet
       if (latestRelease.debutStreams && daysSinceRelease <= 2) {
@@ -198,7 +199,7 @@ export function XView({ gameState, setGameState, onClose }: XViewProps) {
          const spotStr = Math.floor(dS * 0.45);
          const appleStr = Math.floor(dS * 0.25);
          const amzStr = Math.floor(dS * 0.15);
-         const ytStr = Math.floor(dS * 0.15);
+         const ytStr = dS - spotStr - appleStr - amzStr;
 
          const totPop = (gameState.popularity.america + gameState.popularity.latinAmerica + gameState.popularity.europe) || 1;
          const usaSales = Math.floor((latestRelease.sales?.total || 0) * (gameState.popularity.america / totPop));
@@ -254,9 +255,9 @@ Sold in each region:
               dateLabel={new Date(currentDate).toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
               title={latestRelease.title}
               artist={playerName}
-              dailyStreams={Math.floor(dailyAvg * (1 + (Math.random() * 0.2)))}
+              dailyStreams={Math.floor(dailyAvgSpotify * (1 + (Math.random() * 0.2)))}
               changePercent="+7.96%"
-              totalStreams={latestRelease.streams.total}
+              totalStreams={latestRelease.streams.spotify}
          />,
          likes: Math.floor(followerCount * 0.03) + 200,
          retweets: Math.floor(followerCount * 0.01) + 40,
@@ -283,8 +284,8 @@ Sold in each region:
       // Spotify Counter style text tweet
       if (latestRelease.type === 'Single' && gameState.time.daysPassed > 3) {
          let counterText = `"${latestRelease.title}" — Spotify Counter\n\n`;
-         let total = latestRelease.streams?.total || 0;
-         const dailyAvg = Math.floor(total / Math.max(1, gameState.time.daysPassed));
+         let total = latestRelease.streams?.spotify || 0;
+         const dailyAvg = dailyAvgSpotify || Math.floor(total / Math.max(1, gameState.time.daysPassed));
          for (let i = 4; i >= 0; i--) {
             const date = new Date(gameState.time.startDate);
             date.setDate(date.getDate() + gameState.time.daysPassed - i);

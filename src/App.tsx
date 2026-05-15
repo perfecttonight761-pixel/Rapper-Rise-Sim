@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Download, Search, Upload, User, Image as ImageIcon, MapPin, Music, DollarSign, Calendar as CalendarIcon, Award, Activity, Menu, Save, Loader2, Mic, Disc, Zap, Globe, Ticket, Settings as SettingsIcon, Trophy, BarChart3, ShoppingBag } from 'lucide-react';
+import localforage from 'localforage';
+import { Play, Download, Search, Upload, User, Image as ImageIcon, MapPin, Music, DollarSign, Calendar as CalendarIcon, Award, Activity, Menu, Save, Loader2, Mic, Disc, Zap, Globe, Ticket, Settings as SettingsIcon, Trophy, BarChart3, ShoppingBag, Sparkles, X } from 'lucide-react';
 import { GameState, GameScreen, StartCapital, DailyReportData, Song, Album, Gig } from './types';
 import { LEVEL_REQUIREMENTS, NPC_ARTISTS } from './constants';
 import { generateNominees, pickWinner } from './grammyUtils';
@@ -35,11 +36,13 @@ const CAPITAL_MAP: Record<StartCapital, number> = {
 export interface SaveProfile {
   id: string;
   artistName: string;
+  profilePicUrl?: string;
   lastPlayed: number;
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<GameScreen>('home');
+  const [screen, setScreen] = useState<GameScreen>('loading');
+  const [showUpdatePopup, setShowUpdatePopup] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dailyReport, setDailyReport] = useState<DailyReportData | null>(null);
@@ -49,86 +52,137 @@ export default function App() {
   const [saveProfiles, setSaveProfiles] = useState<SaveProfile[]>([]);
 
   useEffect(() => {
-    // Load saves index
-    try {
-      const idx = localStorage.getItem('musician_simulator_saves_index');
-      if (idx) {
-        const parsed = JSON.parse(idx);
-        // Only keep slot format saves in profile
-        const filtered = parsed.filter((p: any) => p.id && p.id.startsWith('slot_'));
-        setSaveProfiles(filtered);
+    const initSaves = async () => {
+      try {
+        let idx = await localforage.getItem<string>('musician_simulator_saves_index');
         
-        // Update the index if we removed old format entries
-        if (filtered.length !== parsed.length) {
-            localStorage.setItem('musician_simulator_saves_index', JSON.stringify(filtered));
-        }
-      }
-    } catch {}
-
-    // Cleanup old orphan auto-saves (created by previous version buggy code `save_{Date.now()}`)
-    try {
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('musician_simulator_save_')) {
-          const saveId = key.replace('musician_simulator_save_', '');
-          if (!saveId.startsWith('slot_')) {
-             keysToRemove.push(key);
+        // --- MIGRATION BLOCK: move localStorage to localforage ---
+        if (!idx) {
+          const lsIdx = localStorage.getItem('musician_simulator_saves_index');
+          if (lsIdx) {
+            idx = lsIdx;
+            await localforage.setItem('musician_simulator_saves_index', lsIdx);
+            const parsed = JSON.parse(lsIdx);
+            for (const profile of parsed) {
+              if (profile.id) {
+                const lsSave = localStorage.getItem('musician_simulator_save_' + profile.id);
+                if (lsSave) {
+                   await localforage.setItem('musician_simulator_save_' + profile.id, lsSave);
+                   localStorage.removeItem('musician_simulator_save_' + profile.id);
+                }
+              }
+            }
+            const lastId = localStorage.getItem('musician_simulator_last_save_id');
+            if (lastId) {
+               await localforage.setItem('musician_simulator_last_save_id', lastId);
+               localStorage.removeItem('musician_simulator_last_save_id');
+            }
+            localStorage.removeItem('musician_simulator_saves_index');
+          } else {
+             // Did they have a very old single save?
+             const extremelyOldSave = localStorage.getItem('musician_simulator_save') || await localforage.getItem('musician_simulator_save');
+             if (extremelyOldSave) {
+                 const newSlotId = 'slot_1';
+                 await localforage.setItem('musician_simulator_save_' + newSlotId, extremelyOldSave);
+                 const parsedSave = JSON.parse(extremelyOldSave as string);
+                 const indexArr = [{ id: newSlotId, artistName: parsedSave?.artist?.name || 'Unknown', lastPlayed: Date.now() }];
+                 idx = JSON.stringify(indexArr);
+                 await localforage.setItem('musician_simulator_saves_index', idx);
+                 await localforage.removeItem('musician_simulator_save');
+                 localStorage.removeItem('musician_simulator_save');
+             }
           }
         }
-      }
-      keysToRemove.forEach(k => localStorage.removeItem(k));
-    } catch (e) {
-      console.error("Cleanup failed", e);
-    }
+        // --- END MIGRATION ---
 
-    // Attempt to load last active save from localStorage on mount
-    try {
-      const lastId = localStorage.getItem('musician_simulator_last_save_id');
-      if (lastId && lastId.startsWith('slot_')) {
-        const saved = localStorage.getItem('musician_simulator_save_' + lastId);
-        if (saved) {
-          const json = JSON.parse(saved);
-          if (json && json.version) {
-            setGameState(json);
-            setCurrentSaveId(lastId);
-            setScreen('dashboard');
+        if (idx) {
+          let parsed = JSON.parse(idx);
+          let assignedSlots = new Set(parsed.filter((p: any) => p.id && p.id.startsWith('slot_')).map((p: any) => p.id));
+          
+          let needsUpdate = false;
+          let newProfiles = [];
+          
+          let availableSlotNum = 1;
+          for (let p of parsed) {
+            if (p.id && p.id.startsWith('slot_')) {
+                newProfiles.push(p);
+            } else if (p.id) {
+                // Find next available slot
+                while (assignedSlots.has(`slot_${availableSlotNum}`) && availableSlotNum <= 3) {
+                    availableSlotNum++;
+                }
+                
+                if (availableSlotNum <= 3) {
+                   const newSlotId = `slot_${availableSlotNum}`;
+                   // Move localforage data
+                   const oldData = await localforage.getItem('musician_simulator_save_' + p.id);
+                   if (oldData) {
+                       await localforage.setItem('musician_simulator_save_' + newSlotId, oldData);
+                       await localforage.removeItem('musician_simulator_save_' + p.id);
+                   }
+                   p.id = newSlotId;
+                   newProfiles.push(p);
+                   assignedSlots.add(newSlotId);
+                   needsUpdate = true;
+                }
+            }
+          }
+
+          setSaveProfiles(newProfiles);
+          if (needsUpdate || newProfiles.length !== parsed.length) {
+              await localforage.setItem('musician_simulator_saves_index', JSON.stringify(newProfiles));
           }
         }
-      } else if (lastId) {
-         // Auto-discard if last loaded save was an old buggy one
-         localStorage.removeItem('musician_simulator_last_save_id');
+
+
+
+        // Attempt to load last active save (No longer auto-loads to screen)
+        const lastId = await localforage.getItem<string>('musician_simulator_last_save_id');
+        if (lastId && !lastId.startsWith('slot_')) {
+           await localforage.removeItem('musician_simulator_last_save_id');
+        }
+      } catch (e) {
+        console.error("Failed to init saves", e);
       }
-    } catch (e) {
-      console.error("Failed to load auto-save", e);
-    }
+    };
+    initSaves().finally(() => {
+        setTimeout(() => {
+            setScreen('home');
+            setShowUpdatePopup(true);
+        }, 3000); // 3 seconds loading screen
+    });
   }, []);
 
-  const saveGameData = (slotId: string, stateToSave: GameState, isAutoSave: boolean = false) => {
+  const saveGameData = async (slotId: string, stateToSave: GameState, isAutoSave: boolean = false) => {
     let internalState = JSON.parse(JSON.stringify(stateToSave)) as GameState;
     let success = false;
     let attempts = 0;
 
     while (!success && attempts < 3) {
        try {
-          localStorage.setItem('musician_simulator_save_' + slotId, JSON.stringify(internalState));
-          localStorage.setItem('musician_simulator_last_save_id', slotId);
+          await localforage.setItem('musician_simulator_save_' + slotId, JSON.stringify(internalState));
+          await localforage.setItem('musician_simulator_last_save_id', slotId);
+          
+          let updatedSavesIndex = "[]";
           setSaveProfiles(prev => {
             let updated = [...prev];
             const existIdx = updated.findIndex(s => s?.id === slotId);
             if (existIdx >= 0) {
-              updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: internalState.artist?.name || 'Unknown' };
+              updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: internalState.artist?.name || 'Unknown', profilePicUrl: internalState.artist?.image };
             } else {
-              updated.push({ id: slotId, artistName: internalState.artist?.name || 'Unknown', lastPlayed: Date.now() });
+              updated.push({ id: slotId, artistName: internalState.artist?.name || 'Unknown', profilePicUrl: internalState.artist?.image, lastPlayed: Date.now() });
             }
-            localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
+            updatedSavesIndex = JSON.stringify(updated);
             return updated;
           });
+          
+          await localforage.setItem('musician_simulator_saves_index', updatedSavesIndex);
+
           success = true;
-          if (!isAutoSave) alert(`Game saved to Slot!`);
+          if (!isAutoSave) alert(`Game saved successfully!`);
        } catch (e: any) {
           attempts++;
-          if (e instanceof DOMException && e.code === 22) { // QuotaExceededError
+          if (e.name === 'QuotaExceededError' || e.code === 22) { // QuotaExceededError
               if (attempts === 1) {
                   // Strategy 1: Wipe customTweets, keep fewer gigs
                   if (internalState.artist?.socialProfile) {
@@ -185,41 +239,8 @@ export default function App() {
   // --- Handlers ---
 
   const handleStartNew = () => {
+    setCurrentSaveId(null);
     setScreen('create');
-  };
-
-  const handleLoadSave = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const json = JSON.parse(event.target?.result as string);
-          if (json.version) {
-            const newId = 'slot_auto';
-            setCurrentSaveId(newId);
-            setGameState(json);
-            setScreen('dashboard');
-          } else {
-            alert("Invalid save file format!");
-          }
-        } catch (err) {
-          alert("Error parsing save file.");
-        }
-      };
-      reader.readAsText(file);
-    }
-  };
-
-  const handleSaveGame = () => {
-    if (!gameState) return;
-    const blob = new Blob([JSON.stringify(gameState)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `musician_simulator_${gameState.artist?.name.replace(/\s+/g, '_')}_save.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const handleNextDay = () => {
@@ -255,7 +276,7 @@ export default function App() {
       // First pass: trigger Scheduled to Published
       workingReleases = workingReleases.map(r => {
         if (r.status === 'Scheduled' && r.releaseDate && new Date(r.releaseDate) <= currentDateObj) {
-           if (r.type === 'Album') newlyPublishedAlbumIds.add((r as Album).id);
+           if (['Album', 'EP', 'Single Pack', 'Deluxe Album'].includes(r.type)) newlyPublishedAlbumIds.add((r as Album).id);
            return { ...r, status: 'Published' };
         }
         return r;
@@ -264,7 +285,7 @@ export default function App() {
       // Find all tracks in Published albums
       const publishedAlbumTracks = new Map<string, string>(); // trackId -> albumReleaseDate
       workingReleases.forEach(r => {
-         if (r.type === 'Album' && r.status === 'Published' && r.releaseDate) {
+         if (['Album', 'EP', 'Single Pack', 'Deluxe Album'].includes(r.type) && r.status === 'Published' && r.releaseDate) {
             (r as Album).trackIds.forEach(id => publishedAlbumTracks.set(id, r.releaseDate!));
          }
       });
@@ -299,7 +320,7 @@ export default function App() {
 
             // Hit Factor (Deterministic per-song based on title)
             const hash = release.title ? release.title.split('').reduce((a, b) => a + b.charCodeAt(0), 0) : 0;
-            const baseHitFactor = (hash % 100) / 100;
+            const baseHitFactor = ((hash * 13) % 1000) / 1000;
             
             // Trend Factor: Shift probabilities based on level, popularity, and quality.
             // Max shift around +0.20 for top tier players.
@@ -310,16 +331,20 @@ export default function App() {
                trendShift += 0.25; // Significant boost to reach the "Hit" threshold (0.85)
             }
 
-            const intrinsicHitFactor = Math.min(0.99, baseHitFactor + trendShift);
+            const intrinsicHitFactor = Math.min(0.999, baseHitFactor + trendShift);
             
             // Introduce more variance for normal songs so they don't all get the same streams
             let hitMultiplier = 0.4 + (intrinsicHitFactor * 0.8); // 0.4 to 1.2 for normal songs
             let currentTrend: 'Flop' | 'Non-Hit' | 'Hit' | 'Mega Hit' = 'Non-Hit';
 
-            if (intrinsicHitFactor > 0.95) {
+            // Mega Hit: strict requirement of incredibly high luck roll (~0.3% chance) and high intrinsic value
+            const isMegaHit = baseHitFactor >= 0.997 && intrinsicHitFactor >= 0.95;
+            const isHit = !isMegaHit && intrinsicHitFactor > 0.85;
+
+            if (isMegaHit) {
                 hitMultiplier = 3.5 + (intrinsicHitFactor * 2); // Massive hit
                 currentTrend = 'Mega Hit';
-            } else if (intrinsicHitFactor > 0.85) {
+            } else if (isHit) {
                 hitMultiplier = 2.0 + (intrinsicHitFactor); // Big hit
                 currentTrend = 'Hit';
             } else if (intrinsicHitFactor < 0.15) {
@@ -333,10 +358,10 @@ export default function App() {
                
                const bSideViralChance = (hash % 100) / 100; // 0 to 0.99
                // Nerf: Only ~10% chance for a B-side to remain a Mega Hit, and ~20% for a Hit
-               if (intrinsicHitFactor > 0.95 && bSideViralChance > 0.90) {
+               if (isMegaHit && bSideViralChance > 0.90) {
                    hitMultiplier = 3.5 + (intrinsicHitFactor * 2); 
                    currentTrend = 'Mega Hit';
-               } else if (intrinsicHitFactor > 0.85 && bSideViralChance > 0.80) {
+               } else if (isHit && bSideViralChance > 0.80) {
                    hitMultiplier = 2.0 + (intrinsicHitFactor); 
                    currentTrend = 'Hit';
                } else if (intrinsicHitFactor < 0.15) {
@@ -389,6 +414,13 @@ export default function App() {
             // --- STABILITY FLOOR (The "Legacy Effect") ---
             // Prevents massive artists from dropping to zero, giving a realistic floor
             let floorPercentage = artistLevel >= 10 ? 0.015 + (intrinsicHitFactor * 0.015) : (artistLevel * 0.0015); 
+            
+            // Cap the floor for non-Mega Hits to ensure Hits settle < 1M streams realistically
+            if (currentTrend === 'Hit') {
+               floorPercentage = Math.min(floorPercentage, 0.002); 
+            } else if (currentTrend !== 'Mega Hit') {
+               floorPercentage = Math.min(floorPercentage, 0.0008);
+            }
             
             // Significant Nerf for B-Sides: Very low floor unless it's a hit
             if (isBSide && (currentTrend === 'Non-Hit' || currentTrend === 'Flop')) {
@@ -501,7 +533,7 @@ export default function App() {
             if (release.type === 'Single' && dStreamsTotal > maxSongStreams) {
                 maxSongStreams = dStreamsTotal;
                 topSong = release.title;
-            } else if (release.type === 'Album' && dStreamsTotal > maxAlbumStreams) {
+            } else if (['Album', 'EP', 'Single Pack', 'Deluxe Album'].includes(release.type) && dStreamsTotal > maxAlbumStreams) {
                 maxAlbumStreams = dStreamsTotal;
                 topAlbum = release.title;
             }
@@ -1112,7 +1144,7 @@ export default function App() {
                }).sort((a, b) => b.spotifyThisYear - a.spotifyThisYear).slice(0, 5);
                const topSongs = songs.map(s => ({ title: s.title, streams: s.spotifyThisYear, image: s.coverImage }));
                   
-               const albums = updatedReleasesWithSales.filter(r => r.type === 'Album' || r.type === 'EP').map(a => {
+               const albums = updatedReleasesWithSales.filter(r => ['Album', 'EP', 'Single Pack', 'Deluxe Album'].includes(r.type)).map(a => {
                    const spotifyThisYear = Math.max(0, (a.streams?.spotify || 0) - (a.lastWrappedStreams?.spotify || 0));
                    return { ...a, spotifyThisYear };
                }).sort((a, b) => b.spotifyThisYear - a.spotifyThisYear).slice(0, 5);
@@ -1216,10 +1248,12 @@ export default function App() {
     if (!artistData) return;
     const initialMoney = CAPITAL_MAP[artistData.capital];
     
-    // Fallback if not using slots:
-    if (!currentSaveId || !currentSaveId.startsWith('slot_')) {
-        const newId = 'slot_auto';
-        setCurrentSaveId(newId);
+    let assignedSlotId = currentSaveId;
+    if (!assignedSlotId || !assignedSlotId.startsWith('slot_') || assignedSlotId === 'slot_auto') {
+        const assignedSlots = saveProfiles.map(p => p.id);
+        const availableSlots = ['slot_1', 'slot_2', 'slot_3'].filter(id => !assignedSlots.includes(id));
+        assignedSlotId = availableSlots.length > 0 ? availableSlots[0] : 'slot_1';
+        setCurrentSaveId(assignedSlotId);
     }
     
     setGameState({
@@ -1282,60 +1316,108 @@ export default function App() {
 
   // --- Screens ---
 
+  if (screen === 'loading') {
+    return (
+      <div className="min-h-screen bg-[#050507] flex flex-col items-center justify-center p-6 text-white overflow-hidden relative font-sans">
+        <div className="animate-pulse flex flex-col items-center duration-1000 animate-in fade-in zoom-in-50">
+           <div className="relative mb-6">
+              <div className="absolute inset-0 bg-yellow-500/20 blur-3xl rounded-full scale-150 animate-pulse" />
+              <div className="w-56 h-56 flex items-center justify-center relative shadow-2xl overflow-hidden rounded-3xl border border-yellow-500/30">
+                 <Mic className="absolute w-24 h-24 text-yellow-500/20" />
+                 <img src="/logo.svg" alt="Rapper Rise Logo" className="w-full h-full object-cover scale-110 relative z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+              </div>
+           </div>
+           <h1 className="text-5xl font-black tracking-[-0.08em] uppercase text-white mb-2 leading-none text-center">
+             RAPPER<br/>
+             <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">RISE</span>
+           </h1>
+           <p className="text-yellow-500/50 text-[10px] font-bold tracking-[0.4em] uppercase mt-8">Loading Experience...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (screen === 'home') {
     return (
       <div className="min-h-screen bg-[#050507] flex flex-col items-center justify-center p-6 text-white overflow-hidden relative font-sans selection:bg-purple-500/30">
+        
+        {/* Update Pop Up */}
+        {showUpdatePopup && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+             <div className="bg-[#111] border border-white/10 rounded-3xl p-8 max-w-md w-full relative animate-in fade-in zoom-in-95 duration-500 shadow-2xl">
+                <button onClick={() => setShowUpdatePopup(false)} className="absolute top-6 right-6 text-white/40 hover:text-white transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+                <div className="flex items-center gap-4 mb-6">
+                   <div className="w-12 h-12 bg-yellow-500/20 rounded-2xl flex items-center justify-center border border-yellow-500/30">
+                      <Sparkles className="w-6 h-6 text-yellow-500" />
+                   </div>
+                   <div>
+                     <h2 className="text-2xl font-black uppercase tracking-tight">Update <span className="text-yellow-500">v1.6</span></h2>
+                     <p className="text-white/40 text-xs font-bold uppercase tracking-widest">What's New in Rapper Rise</p>
+                   </div>
+                </div>
+                
+                <div className="space-y-4 mb-8">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">🎵 Album Types & EPs</h3>
+                     <p className="text-xs text-white/50 leading-relaxed">You can now release Single Packs (1-3 tracks), EPs (4-7 tracks), and Full Albums (8+ tracks) in the studio.</p>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">📀 Deluxe Editions</h3>
+                     <p className="text-xs text-white/50 leading-relaxed">Extend your eras! Release Deluxe versions of your existing projects with new covers and bonus tracks from your discography.</p>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">💾 Save System Revamp</h3>
+                     <p className="text-xs text-white/50 leading-relaxed">Full UI support for Loading your existing saves and starting fresh careers interchangeably in the main menu.</p>
+                  </div>
+                </div>
+                
+                <button onClick={() => setShowUpdatePopup(false)} className="w-full bg-white text-black py-4 rounded-xl font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-xl hover:bg-gray-200">
+                  Got It, Let's Rap
+                </button>
+             </div>
+          </div>
+        )}
+
         {/* Background Atmosphere */}
         <div className="absolute inset-0 pointer-events-none z-0">
-          <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-purple-600/10 blur-[150px] rounded-full"></div>
-          <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[150px] rounded-full"></div>
+          <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-yellow-600/10 blur-[150px] rounded-full"></div>
+          <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-orange-600/10 blur-[150px] rounded-full"></div>
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] mix-blend-overlay"></div>
         </div>
         
         <div className="relative z-10 text-center w-full max-w-xl">
           <div className="mb-16 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             <div className="relative inline-block">
-               <div className="absolute inset-0 bg-purple-500/20 blur-3xl rounded-full scale-150 animate-pulse" />
-               <div className="relative w-28 h-28 bg-gradient-to-br from-white/10 to-transparent border border-white/20 rounded-[2rem] flex items-center justify-center mx-auto mb-10 shadow-2xl backdrop-blur-xl group">
-                 <div className="absolute inset-0 bg-white/5 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity" />
-                 <Music className="w-12 h-12 text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" />
+               <div className="absolute inset-0 bg-yellow-500/20 blur-3xl rounded-full scale-150 animate-pulse" />
+               <div className="relative w-48 h-48 bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-yellow-500/30 rounded-3xl flex items-center justify-center mx-auto mb-10 shadow-2xl overflow-hidden group">
+                 <Mic className="absolute w-20 h-20 text-yellow-500/20" />
+                 <div className="absolute inset-0 bg-white/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity z-10" />
+                 <img src="/logo.svg" alt="Rapper Rise Logo" className="w-full h-full object-cover scale-110 relative z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                </div>
             </div>
             
-            <h1 className="text-6xl sm:text-8xl font-black tracking-[ -0.08em] uppercase text-white mb-4 leading-none">
-              MUSICIAN<br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">SIMULATOR</span>
+            <h1 className="text-6xl sm:text-8xl font-black tracking-[ -0.08em] uppercase text-white mb-4 leading-none text-center">
+              RAPPER<br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">RISE</span>
             </h1>
             <div className="flex items-center justify-center gap-4 mt-6">
                <div className="h-px w-12 bg-white/10" />
-               <p className="text-white/40 font-black tracking-[0.4em] text-[10px] uppercase">Est. 2024 • System v1.4</p>
+               <p className="text-white/40 font-black tracking-[0.4em] text-[10px] uppercase">Est. 2024 • System v1.5</p>
                <div className="h-px w-12 bg-white/10" />
             </div>
           </div>
 
           <div className="space-y-4 max-w-sm mx-auto animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
-            {saveProfiles.length > 0 && (
-              <button 
-                onClick={() => setScreen('saves')}
-                className="w-full h-16 flex items-center justify-center gap-4 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-white active:scale-95 font-black tracking-widest text-sm rounded-2xl transition-all shadow-lg group relative overflow-hidden"
-              >
-                <Save className="w-5 h-5 fill-current" />
-                LOAD GAME / SLOTS
-              </button>
-            )}
             <button 
-              onClick={handleStartNew}
+              onClick={() => setScreen('saves')}
               className="w-full h-16 flex items-center justify-center gap-4 bg-white text-black hover:bg-white/90 active:scale-95 font-black tracking-widest text-sm rounded-2xl transition-all shadow-[0_20px_40px_rgba(255,255,255,0.1)] group relative overflow-hidden"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-purple-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-              <Play className="w-5 h-5 fill-current" />
-              START NEW
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/0 via-yellow-500/10 to-yellow-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              <Play className="w-5 h-5 fill-current text-yellow-500" />
+              PLAY
             </button>
-            <label className="w-full h-16 flex items-center justify-center gap-4 bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-white font-black tracking-widest text-sm rounded-2xl transition-all cursor-pointer group">
-              <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              UPLOAD SAVE (JSON)
-              <input type="file" accept=".json" className="hidden" onChange={handleLoadSave} />
-            </label>
           </div>
         </div>
 
@@ -1376,13 +1458,22 @@ export default function App() {
                    
                    {profile ? (
                      <div className="flex flex-col flex-1">
-                        <h3 className="text-2xl font-black mb-1 truncate">{profile.artistName}</h3>
+                        <div className="flex items-center gap-4 mb-4">
+                           {profile.profilePicUrl ? (
+                             <img src={profile.profilePicUrl} className="w-16 h-16 rounded-full object-cover border-2 border-white/10" />
+                           ) : (
+                             <div className="w-16 h-16 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center">
+                               <User className="w-8 h-8 text-white/40" />
+                             </div>
+                           )}
+                           <h3 className="text-2xl font-black mb-1 truncate">{profile.artistName}</h3>
+                        </div>
                         <p className="text-xs text-white/40 font-bold uppercase tracking-widest mb-6">Last Played: {new Date(profile.lastPlayed).toLocaleString()}</p>
                         
                         <div className="mt-auto space-y-2">
                            <button 
-                             onClick={() => {
-                               const saved = localStorage.getItem('musician_simulator_save_' + slotId);
+                             onClick={async () => {
+                               const saved = await localforage.getItem<string>('musician_simulator_save_' + slotId);
                                if (saved) {
                                   setGameState(JSON.parse(saved));
                                   setCurrentSaveId(slotId);
@@ -1397,10 +1488,8 @@ export default function App() {
                            {gameState && (
                               <button 
                                 onClick={() => {
-                                  if (confirm(`Overwrite Slot ${slotNum} with your current game?`)) {
-                                     setCurrentSaveId(slotId);
-                                     saveGameData(slotId, gameState, false);
-                                  }
+                                   setCurrentSaveId(slotId);
+                                   saveGameData(slotId, gameState, false);
                                 }}
                                 className="w-full bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors"
                               >
@@ -1409,20 +1498,23 @@ export default function App() {
                            )}
                            
                            <button 
-                             onClick={() => {
-                               if (confirm(`Are you sure you want to delete Slot ${slotNum}?`)) {
-                                 localStorage.removeItem('musician_simulator_save_' + slotId);
-                                 if (localStorage.getItem('musician_simulator_last_save_id') === slotId) {
-                                   localStorage.removeItem('musician_simulator_last_save_id');
-                                 }
-                                 setSaveProfiles(prev => {
-                                   const updated = prev.filter(p => p?.id !== slotId);
-                                   localStorage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
-                                   return updated;
-                                 });
-                                 if (currentSaveId === slotId) {
-                                     setCurrentSaveId(null);
-                                 }
+                             onClick={async () => {
+                               await localforage.removeItem('musician_simulator_save_' + slotId);
+                               const lastLSA = await localforage.getItem('musician_simulator_last_save_id');
+                               if (lastLSA === slotId) {
+                                 await localforage.removeItem('musician_simulator_last_save_id');
+                               }
+                                 
+                               let updatedSavesIndex = "[]";
+                               setSaveProfiles(prev => {
+                                 const updated = prev.filter(p => p?.id !== slotId);
+                                 updatedSavesIndex = JSON.stringify(updated);
+                                 return updated;
+                               });
+                               await localforage.setItem('musician_simulator_saves_index', updatedSavesIndex);
+
+                               if (currentSaveId === slotId) {
+                                   setCurrentSaveId(null);
                                }
                              }}
                              className="w-full bg-red-600/10 hover:bg-red-600/20 text-red-400 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors border border-red-500/10"
@@ -1452,9 +1544,6 @@ export default function App() {
                            )}
                            <button 
                              onClick={() => {
-                               if (gameState && !confirm("You are currently playing a game. Starting a new save will stop your current progress. Did you save it to a slot first?")) {
-                                  return;
-                               }
                                setCurrentSaveId(slotId);
                                setGameState(null);
                                setScreen('create');
@@ -1468,28 +1557,7 @@ export default function App() {
                    )}
                  </div>
                );
-            })}
-          </div>
-
-          <div className="bg-[#111] border border-white/5 rounded-[2rem] p-8 md:p-10 relative overflow-hidden group shadow-2xl max-w-2xl mx-auto">
-             <div className="flex items-center gap-3 mb-6">
-                <Download className="w-6 h-6 text-blue-400" />
-                <h2 className="text-2xl font-black text-white uppercase tracking-tight">Manual File Backup</h2>
-             </div>
-             <p className="text-white/50 text-sm mb-6 max-w-lg leading-relaxed">You can download your entire save data as a JSON file, or upload one to continue a previous legacy.</p>
-             <div className="flex flex-col sm:flex-row gap-4">
-                <button 
-                  onClick={handleSaveGame} 
-                  disabled={!gameState}
-                  className="flex-1 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 text-white font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2"
-                >
-                  <Download className="w-4 h-4" /> Download Current Save
-                </button>
-                <label className="flex-1 bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer">
-                  <Upload className="w-4 h-4" /> Upload JSON Save
-                  <input type="file" accept=".json" className="hidden" onChange={handleLoadSave} />
-                </label>
-             </div>
+             })}
           </div>
         </div>
       </div>
@@ -1689,12 +1757,18 @@ export default function App() {
 
           <div className="bg-black/40 border border-white/5 rounded-2xl p-6 mt-auto">
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-4">Save Management</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={handleSaveGame} className="bg-white/5 hover:bg-white/10 border border-white/10 py-3 rounded-xl text-xs uppercase tracking-tighter transition-colors">Download Save</button>
-              <label className="bg-white/5 hover:bg-white/10 border border-white/10 py-3 rounded-xl text-xs uppercase tracking-tighter text-center flex items-center justify-center cursor-pointer transition-colors">
-                Load Save
-                <input type="file" accept=".json" className="hidden" onChange={handleLoadSave} />
-              </label>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => {
+                   if (gameState && currentSaveId) {
+                      saveGameData(currentSaveId, gameState, false);
+                   }
+                   setScreen('home');
+                }} 
+                className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 py-3 rounded-xl text-xs uppercase tracking-tighter transition-colors text-center"
+              >
+                Save & Quit To Menu
+              </button>
             </div>
           </div>
         </div>
@@ -1704,7 +1778,7 @@ export default function App() {
           <div className="col-span-9 flex flex-col h-full bg-black/20 border border-white/5 rounded-3xl overflow-hidden relative min-h-[400px]">
              {screen === 'dashboard' && <DashboardView gameState={gameState} setGameState={setGameState} dateDayStr={dateDayStr} dayName={dayName} monthYearStr={monthYearStr} handleNextDay={handleNextDay} isLoadingNextDay={isLoadingNextDay} currentAgeYears={currentAgeYears} isAutoAdvancing={isAutoAdvancing} setIsAutoAdvancing={setIsAutoAdvancing} onOpenWrapped={() => setScreen('wrapped')} />}
              {screen === 'studio' && <StudioView gameState={gameState!} setGameState={setGameState} currentDate={currentDate} />}
-             {screen === 'discography' && <DiscographyView gameState={gameState!} />}
+             {screen === 'discography' && <DiscographyView gameState={gameState!} setGameState={setGameState} currentDate={currentDate} />}
              {screen === 'merch' && <MerchStoreView gameState={gameState!} setGameState={setGameState} />}
              {screen === 'skills' && <SkillsView gameState={gameState!} setGameState={setGameState} />}
              {screen === 'regions' && <RegionPopularityView gameState={gameState!} />}

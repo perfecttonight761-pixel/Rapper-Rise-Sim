@@ -163,20 +163,17 @@ export default function App() {
           await localforage.setItem('musician_simulator_save_' + slotId, JSON.stringify(internalState));
           await localforage.setItem('musician_simulator_last_save_id', slotId);
           
-          let updatedSavesIndex = "[]";
-          setSaveProfiles(prev => {
-            let updated = [...prev];
-            const existIdx = updated.findIndex(s => s?.id === slotId);
-            if (existIdx >= 0) {
-              updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: internalState.artist?.name || 'Unknown', profilePicUrl: internalState.artist?.image };
-            } else {
-              updated.push({ id: slotId, artistName: internalState.artist?.name || 'Unknown', profilePicUrl: internalState.artist?.image, lastPlayed: Date.now() });
-            }
-            updatedSavesIndex = JSON.stringify(updated);
-            return updated;
-          });
+          const currentProfiles = saveProfiles;
+          let existIdx = currentProfiles.findIndex(s => s?.id === slotId);
+          let updated = [...currentProfiles];
+          if (existIdx >= 0) {
+            updated[existIdx] = { ...updated[existIdx], lastPlayed: Date.now(), artistName: internalState.artist?.name || 'Unknown', profilePicUrl: internalState.artist?.image };
+          } else {
+            updated.push({ id: slotId, artistName: internalState.artist?.name || 'Unknown', profilePicUrl: internalState.artist?.image, lastPlayed: Date.now() });
+          }
+          setSaveProfiles(updated);
           
-          await localforage.setItem('musician_simulator_saves_index', updatedSavesIndex);
+          await localforage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
 
           success = true;
           if (!isAutoSave) alert(`Game saved successfully!`);
@@ -1505,13 +1502,9 @@ export default function App() {
                                  await localforage.removeItem('musician_simulator_last_save_id');
                                }
                                  
-                               let updatedSavesIndex = "[]";
-                               setSaveProfiles(prev => {
-                                 const updated = prev.filter(p => p?.id !== slotId);
-                                 updatedSavesIndex = JSON.stringify(updated);
-                                 return updated;
-                               });
-                               await localforage.setItem('musician_simulator_saves_index', updatedSavesIndex);
+                               const updated = saveProfiles.filter(p => p?.id !== slotId);
+                               setSaveProfiles(updated);
+                               await localforage.setItem('musician_simulator_saves_index', JSON.stringify(updated));
 
                                if (currentSaveId === slotId) {
                                    setCurrentSaveId(null);

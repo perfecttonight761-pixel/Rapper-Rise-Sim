@@ -280,23 +280,37 @@ export default function App() {
       });
 
       // Find all tracks in Published albums
-      const publishedAlbumTracks = new Map<string, string>(); // trackId -> albumReleaseDate
+      const publishedAlbumTracks = new Map<string, { date: string, cover?: string }>(); // trackId -> album info
       workingReleases.forEach(r => {
          if (['Album', 'EP', 'Single Pack', 'Deluxe Album'].includes(r.type) && r.status === 'Published' && r.releaseDate) {
-            (r as Album).trackIds.forEach(id => publishedAlbumTracks.set(id, r.releaseDate!));
+            (r as Album).trackIds.forEach(id => publishedAlbumTracks.set(id, { date: r.releaseDate!, cover: r.coverImage }));
          }
       });
 
       // Second pass: publish tracks belonging to newly/already published albums
       workingReleases = workingReleases.map(r => {
-         if (r.type === 'Single' && r.status !== 'Published' && publishedAlbumTracks.has(r.id)) {
-            // It's a B-Side that hasn't been individually published
-            return { 
-                ...r, 
-                status: 'Published', 
-                releaseDate: publishedAlbumTracks.get(r.id) || currentDateObj.toISOString(), 
-                isBSide: true 
-            } as Song;
+         if (r.type === 'Single') {
+            const albumInfo = publishedAlbumTracks.get(r.id);
+            if (albumInfo) {
+              const updates: any = {};
+              let modified = false;
+
+              if (r.status !== 'Published') {
+                 updates.status = 'Published';
+                 updates.releaseDate = albumInfo.date || currentDateObj.toISOString();
+                 updates.isBSide = true;
+                 modified = true;
+              }
+
+              if (!r.coverImage && albumInfo.cover) {
+                 updates.coverImage = albumInfo.cover;
+                 modified = true;
+              }
+
+              if (modified) {
+                 return { ...r, ...updates } as Song;
+              }
+            }
          }
          return r;
       });
@@ -436,7 +450,7 @@ export default function App() {
             const radioMaxHit = hitMultiplier * qualityMod * (1 + artistLevel * 0.2);
             let dailyRadio = (isBSide && (currentTrend === 'Non-Hit' || currentTrend === 'Flop'))
                 ? 0 // Normal B-sides get no radio
-                : Math.floor(radioCurve * radioMaxHit * 15 * popBoost * (Math.random() * 0.4 + 0.8));
+                : Math.floor(radioCurve * radioMaxHit * 10 * popBoost * (Math.random() * 0.4 + 0.8));
 
             // Recurrent Radio (Catalog play after peak)
             if (daysSinceRelease > peakRadioDay && dailyRadio < (radioMaxHit * 2)) {
@@ -922,11 +936,11 @@ export default function App() {
         const completedGigsCount = updatedGigs.filter(g => g.completed).length;
 
         // Limit total gigs memory footprint
-        if (updatedGigs.length > 150) {
+        if (updatedGigs.length > 1200) {
            const incomplete = updatedGigs.filter(g => !g.completed);
            const completed = updatedGigs.filter(g => g.completed);
-           // Keep all incomplete, and only the newest 100 completed
-           updatedGigs = [...incomplete, ...completed.slice(Math.max(0, completed.length - 100))];
+           // Keep all incomplete, and only the newest 1000 completed
+           updatedGigs = [...incomplete, ...completed.slice(Math.max(0, completed.length - 1000))];
         }
 
         while (currentLvl < 10) {
@@ -1357,16 +1371,12 @@ export default function App() {
                 
                 <div className="space-y-4 mb-8">
                   <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">🎵 Album Types & EPs</h3>
-                     <p className="text-xs text-white/50 leading-relaxed">You can now release Single Packs (1-3 tracks), EPs (4-7 tracks), and Full Albums (8+ tracks) in the studio.</p>
+                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">🎙️ Multiple Features</h3>
+                     <p className="text-xs text-white/50 leading-relaxed">You can now add up to 3 featured artists on a single track in the studio using the new feature dropdown.</p>
                   </div>
                   <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">📀 Deluxe Editions</h3>
-                     <p className="text-xs text-white/50 leading-relaxed">Extend your eras! Release Deluxe versions of your existing projects with new covers and bonus tracks from your discography.</p>
-                  </div>
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">💾 Save System Revamp</h3>
-                     <p className="text-xs text-white/50 leading-relaxed">Full UI support for Loading your existing saves and starting fresh careers interchangeably in the main menu.</p>
+                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">🔧 Bug Fixes</h3>
+                     <p className="text-xs text-white/50 leading-relaxed">Fixed Chart History peak position display bugs, Level Up issues past level 7, and Vaulted song covers syncing with album covers.</p>
                   </div>
                   <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
                      <h3 className="text-sm font-bold text-white mb-2 tracking-tight flex items-center justify-center">Join Our Community</h3>

@@ -51,8 +51,9 @@ export function StudioView({ gameState, setGameState, currentDate }: StudioViewP
 function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProps) {
   const [cover, setCover] = useState('');
   const [title, setTitle] = useState('');
-  const [collab, setCollab] = useState('');
-  const [collabCost, setCollabCost] = useState<number>(0);
+  const [selectedCollabs, setSelectedCollabs] = useState<string[]>([]);
+  const [showCollabDropdown, setShowCollabDropdown] = useState(false);
+
   const [genre, setGenre] = useState<Genre>('Pop');
   const [scheduleDays, setScheduleDays] = useState<number>(7);
   
@@ -68,13 +69,11 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
      return Math.ceil((npc.basePoints / 450000) * 5000000);
   };
 
-  const handleCollabChange = (val: string) => {
-    setCollab(val);
-    const npc = NPC_ARTISTS.find(n => n.name === val);
-    if (npc) {
-        setCollabCost(calculateCollabCost(npc));
-    } else {
-        setCollabCost(0);
+  const toggleCollab = (name: string) => {
+    if (selectedCollabs.includes(name)) {
+      setSelectedCollabs(prev => prev.filter(c => c !== name));
+    } else if (selectedCollabs.length < 3) {
+      setSelectedCollabs(prev => [...prev, name]);
     }
   };
 
@@ -82,7 +81,11 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
     const swCost = songwriterLvl === 0 ? 0 : (songwriterLvl * 500);
     const pCost = producerLvl === 0 ? 0 : (producerLvl * 1000);
     const cCost = composerLvl === 0 ? 0 : (composerLvl * 600);
-    return swCost + pCost + cCost + (collabCost || 0);
+    const totalCollabCost = selectedCollabs.reduce((sum, name) => {
+      const npc = NPC_ARTISTS.find(n => n.name === name);
+      return sum + (npc ? calculateCollabCost(npc) : 0);
+    }, 0);
+    return swCost + pCost + cCost + totalCollabCost;
   };
 
   const getQualityValue = (lvl: number, skillType: 'songwriting' | 'production' | 'vocals') => {
@@ -125,8 +128,8 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
     }
 
     let finalTitle = title;
-    if (collab.trim() && !title.toLowerCase().includes('feat')) {
-        finalTitle = `${title} (feat. ${collab.trim()})`;
+    if (selectedCollabs.length > 0 && !title.toLowerCase().includes('feat')) {
+        finalTitle = `${title} (feat. ${selectedCollabs.join(' & ')})`;
     }
 
     const newSong: Song = {
@@ -140,8 +143,11 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
       sales: { physical: 0, digital: 0, total: 0 },
       radioPlays: 0,
       genre,
-      collaborator: collab.trim(),
-      featuredArtistCost: collabCost || 0,
+      collaborator: selectedCollabs.join(', '),
+      featuredArtistCost: selectedCollabs.reduce((sum, name) => {
+        const npc = NPC_ARTISTS.find(n => n.name === name);
+        return sum + (npc ? calculateCollabCost(npc) : 0);
+      }, 0),
       qualityModifier: calculateQuality()
     };
 
@@ -159,8 +165,7 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
 
     alert(status === 'Published' ? "Song Released!" : (status === 'Scheduled' ? "Song Scheduled!" : "Song Vaulted!"));
     setTitle('');
-    setCollab('');
-    setCollabCost(0);
+    setSelectedCollabs([]);
     setCover('');
   };
 
@@ -183,19 +188,46 @@ function CreateSongForm({ gameState, setGameState, currentDate }: StudioViewProp
             <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Song Title</label>
             <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 focus:bg-white/5 transition-all font-mono" placeholder="Hit Song Title" />
           </div>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Select Collaborator (Optional)</label>
-              <div className="flex gap-4">
-                 <select value={collab} onChange={e => handleCollabChange(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all appearance-none font-mono">
-                   <option value="" className="bg-zinc-900">None</option>
-                   {rankedNPCs.map(npc => (
-                     <option key={npc.name} value={npc.name} className="bg-zinc-900">
-                       {npc.name} (${calculateCollabCost(npc).toLocaleString()})
-                     </option>
-                   ))}
-                 </select>
-              </div>
+          <div className="flex flex-col gap-2">
+            <label className="block text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Features (Max 3)</label>
+            <div className="relative">
+              <button 
+                onClick={() => setShowCollabDropdown(!showCollabDropdown)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-left text-white focus:outline-none focus:border-purple-500 transition-all font-mono flex justify-between items-center"
+              >
+                <span className="truncate">
+                  {selectedCollabs.length === 0 
+                    ? 'No Features' 
+                    : selectedCollabs.join(', ')}
+                </span>
+                <span className="text-white/40">▼</span>
+              </button>
+              
+              {showCollabDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-[#111] border border-white/10 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto">
+                  {rankedNPCs.map(npc => {
+                    const isSelected = selectedCollabs.includes(npc.name);
+                    const isDisabled = !isSelected && selectedCollabs.length >= 3;
+                    return (
+                      <label 
+                        key={npc.name} 
+                        className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/5'}`}
+                      >
+                        <input 
+                          type="checkbox" 
+                          checked={isSelected}
+                          disabled={isDisabled}
+                          onChange={() => toggleCollab(npc.name)}
+                          className="w-4 h-4 rounded border-white/20 bg-black/40 checked:bg-purple-500 focus:ring-0 focus:ring-offset-0"
+                        />
+                        <span className="font-mono text-sm text-white">
+                          {npc.name} <span className="text-white/40">(${calculateCollabCost(npc).toLocaleString()})</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

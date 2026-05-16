@@ -29,8 +29,8 @@ export function RadioChart({ gameState, onBack }: { gameState: GameState, onBack
         
         const hitLongevity = Math.max(1, hitMultiplier);
         
-        const peakRadioDay = 40 + (intrinsicHitFactor * 30);
-        const radioWidth = 30 + (hitLongevity * 10);
+        const peakRadioDay = 30 + (intrinsicHitFactor * 50);
+        const radioWidth = 45 + (hitLongevity * 15);
         
         const distance = Math.abs(daysSinceRelease - peakRadioDay);
         const radioCurve = Math.exp(-(distance * distance) / (radioWidth * radioWidth));
@@ -40,11 +40,19 @@ export function RadioChart({ gameState, onBack }: { gameState: GameState, onBack
         // Deterministic wobble for the chart so it doesn't flicker on re-render but changes daily
         const wobble = (hash + gameState.time.daysPassed) % 40 / 100; // 0.0 to 0.4
         
-        let dailyRadio = (r.isBSide && intrinsicHitFactor <= 0.96) ? 0 : Math.floor(radioCurve * radioMaxHit * 10 * popBoost * (wobble + 0.8));
+        // Match App.tsx B-side logic: isBSide && <Hit (multiplier <= 2)
+        let dailyRadio = (r.isBSide && hitMultiplier <= 2) ? 0 : Math.floor(radioCurve * radioMaxHit * 10 * popBoost * (wobble + 0.8));
+        
+        // Match recurrent factor logic from App.tsx
+        if (daysSinceRelease > peakRadioDay && dailyRadio < (radioMaxHit * 2)) {
+            const recurrentFactor = (hitMultiplier > 2 ? 0.05 : 0.01) * radioMaxHit * popBoost;
+            dailyRadio = Math.max(dailyRadio, Math.floor(recurrentFactor * (wobble + 0.7)));
+        }
+
         const weeklySpins = dailyRadio * 7;
         
         // Find Peak (when distance = 0)
-        let peakDaily = (r.isBSide && intrinsicHitFactor <= 0.96) ? 0 : Math.floor(1.0 * radioMaxHit * 10 * popBoost * 1.0); // estimated peak
+        let peakDaily = (r.isBSide && hitMultiplier <= 2) ? 0 : Math.floor(1.0 * radioMaxHit * 10 * popBoost * 1.2); // estimated max peak with wobble
         if (peakDaily < dailyRadio) peakDaily = dailyRadio; // Should never happen unless wobble kicks it over
         const peakSpins = peakDaily * 7;
         
@@ -61,17 +69,17 @@ export function RadioChart({ gameState, onBack }: { gameState: GameState, onBack
      const daySeed = Math.floor(gameState.time.daysPassed / 10);
      const pName = gameState.artist?.name || '';
      const npcSongs = generateNPCSongs(1, daySeed, pName).map((s, i) => {
-        const isHit = i % 10 === 0 ? 3.5 : (i % 3 === 0 ? 0.5 : 1);
+        const isHit = i % 10 === 0 ? 3.5 : (i % 3 === 0 ? 0.5 : 1.2);
         const weeksOld = Math.max(1, (gameState.time.daysPassed % (i * 10 + 20)) / 7);
         const distance = Math.abs(weeksOld - 6); // peak week 6
         const curve = Math.exp(-(distance * distance) / 25);
         
-        let daily = Math.floor(s.points * 6 * curve * isHit); 
+        let daily = Math.floor((s.points / 450000) * 1200 * curve * isHit); 
         return { 
            ...s, 
            isPlayer: false,
            weeklySpins: daily * 7,
-           peakSpins: (Math.floor(s.points * 6 * 1.0 * isHit)) * 7,
+           peakSpins: (Math.floor((s.points / 450000) * 1200 * 1.0 * isHit)) * 7,
            daysOnChart: Math.max(1, Math.floor(weeksOld)),
            coverImage: s.coverImage || ARTIST_IMAGES[s.artist as string] || `https://i.pravatar.cc/200?u=${encodeURIComponent(s.artist)}`
         };
@@ -178,7 +186,7 @@ export function RadioChart({ gameState, onBack }: { gameState: GameState, onBack
                   </div>
 
                   <div className="w-24 hidden sm:flex flex-col items-end">
-                    <span className="text-sm font-mono font-bold text-white/40">{(spins * 1250).toLocaleString()}</span>
+                    <span className="text-sm font-mono font-bold text-white/40">{(spins * 4500).toLocaleString()}</span>
                     <span className="text-[8px] font-bold text-white/10 uppercase tracking-widest">IMPRESSIONS</span>
                   </div>
                 </div>

@@ -14,20 +14,33 @@ export function ReleaseStatsPopup({ release, gameState, onClose }: ReleaseStatsP
      ? { total: release.streams, spotify: release.streams * 0.4, appleMusic: release.streams * 0.25, amazonMusic: release.streams * 0.25, youtubeMusic: release.streams * 0.1 }
      : release.streams;
 
-  // Sales Breakdown (Estimated by region based on popularity)
-  const totalPop = (gameState.popularity.america + gameState.popularity.latinAmerica + gameState.popularity.europe) || 1;
-  const amPerc = gameState.popularity.america / totalPop;
-  const laPerc = gameState.popularity.latinAmerica / totalPop;
-  const euPerc = gameState.popularity.europe / totalPop;
-  // Asia doesn't exist in the popularity object directly, so let's give it a fixed tiny fraction or distribute leftover
-  const asPerc = 0.05; // 5% base allocation for 'Other'
+  // Base Market Sizes (Audience distribution)
+  const BASE_MARKET = {
+    america: 0.50,
+    europe: 0.35,
+    latinAmerica: 0.15
+  };
+
+  // Combine Player Popularity with Base Market
+  const rawAm = BASE_MARKET.america * (1 + ((gameState.popularity.america || 0) / 100));
+  const rawEu = BASE_MARKET.europe * (1 + ((gameState.popularity.europe || 0) / 100));
+  const rawLa = BASE_MARKET.latinAmerica * (1 + ((gameState.popularity.latinAmerica || 0) / 100));
+
+  const totalRaw = rawAm + rawEu + rawLa;
+  
+  const amPerc = rawAm / totalRaw;
+  const euPerc = rawEu / totalRaw;
+  const laPerc = rawLa / totalRaw;
 
   const totalSales = release.sales?.total || 0;
-  // Redistribute slightly to account for the 5% other
-  const amSales = Math.floor(totalSales * (amPerc * 0.95));
-  const laSales = Math.floor(totalSales * (laPerc * 0.95));
-  const euSales = Math.floor(totalSales * (euPerc * 0.95));
-  const asSales = Math.floor(totalSales * asPerc);
+  const amSales = Math.floor(totalSales * amPerc);
+  const euSales = Math.floor(totalSales * euPerc);
+  const laSales = Math.floor(totalSales * laPerc);
+
+  const totalStreams = streams.total || 0;
+  const amStreams = Math.floor(totalStreams * amPerc);
+  const euStreams = Math.floor(totalStreams * euPerc);
+  const laStreams = Math.floor(totalStreams * laPerc);
 
   // Peak Chart Estimator (Using debut streams to estimate peak week)
   const peakWeeklyStreams = (release.debutStreams || release.lastDailyStreams?.total || 0) * 7;
@@ -132,25 +145,65 @@ export function ReleaseStatsPopup({ release, gameState, onClose }: ReleaseStatsP
               </div>
            </section>
 
-           {/* Sales By Region */}
+           {/* Regional Breakdown */}
            <section>
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/40 mb-4 pb-2 border-b border-white/10">Sales By Region</h3>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                 <div className="bg-white/5 p-4 rounded-xl">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-1">America</span>
-                    <span className="font-mono text-xl text-blue-400">{amSales.toLocaleString()}</span>
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/40 mb-4 pb-2 border-b border-white/10">Regional Breakdown</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div className="bg-white/5 p-4 rounded-xl space-y-3">
+                    <div className="flex items-center gap-2">
+                       <Globe2 className="w-4 h-4 text-blue-400" />
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-white/80 block">America</span>
+                    </div>
+                    <div>
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-0.5">Audience Share</span>
+                       <span className="font-mono text-sm text-white/80">{(amPerc * 100).toFixed(1)}%</span>
+                    </div>
+                    <div>
+                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-0.5">Streams</span>
+                         <span className="font-mono text-lg text-white">{amStreams.toLocaleString()}</span>
+                    </div>
+                    <div>
+                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-0.5">Pure Sales</span>
+                         <span className="font-mono text-lg text-blue-400">{amSales.toLocaleString()}</span>
+                    </div>
                  </div>
-                 <div className="bg-white/5 p-4 rounded-xl">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-1">Latin America</span>
-                    <span className="font-mono text-xl text-orange-400">{laSales.toLocaleString()}</span>
+
+                 <div className="bg-white/5 p-4 rounded-xl space-y-3">
+                    <div className="flex items-center gap-2">
+                       <Globe2 className="w-4 h-4 text-green-400" />
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-white/80 block">Europe</span>
+                    </div>
+                    <div>
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-0.5">Audience Share</span>
+                       <span className="font-mono text-sm text-white/80">{(euPerc * 100).toFixed(1)}%</span>
+                    </div>
+                    <div>
+                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-0.5">Streams</span>
+                         <span className="font-mono text-lg text-white">{euStreams.toLocaleString()}</span>
+                    </div>
+                    <div>
+                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-0.5">Pure Sales</span>
+                         <span className="font-mono text-lg text-green-400">{euSales.toLocaleString()}</span>
+                    </div>
                  </div>
-                 <div className="bg-white/5 p-4 rounded-xl">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-1">Europe</span>
-                    <span className="font-mono text-xl text-green-400">{euSales.toLocaleString()}</span>
-                 </div>
-                 <div className="bg-white/5 p-4 rounded-xl">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-1">Asia & Other</span>
-                    <span className="font-mono text-xl text-yellow-400">{asSales.toLocaleString()}</span>
+
+                 <div className="bg-white/5 p-4 rounded-xl space-y-3">
+                    <div className="flex items-center gap-2">
+                       <Globe2 className="w-4 h-4 text-orange-400" />
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-white/80 block">Latin America</span>
+                    </div>
+                    <div>
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-0.5">Audience Share</span>
+                       <span className="font-mono text-sm text-white/80">{(laPerc * 100).toFixed(1)}%</span>
+                    </div>
+                    <div>
+                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-0.5">Streams</span>
+                         <span className="font-mono text-lg text-white">{laStreams.toLocaleString()}</span>
+                    </div>
+                    <div>
+                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-0.5">Pure Sales</span>
+                         <span className="font-mono text-lg text-orange-400">{laSales.toLocaleString()}</span>
+                    </div>
                  </div>
               </div>
            </section>

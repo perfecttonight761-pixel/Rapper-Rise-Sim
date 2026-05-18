@@ -38,7 +38,8 @@ export function ChartHistoryView({ gameState, onClose }: ChartHistoryViewProps) 
            debutDate: new Date(hist.debutDate),
            peakPos: hist.peakPos,
            peakDate: new Date(hist.peakDate),
-           weeksOnChart: hist.weeksOnChart
+           weeksOnChart: hist.weeksOnChart,
+           weeksAtPeak: hist.weeksAtPeak
          };
       });
       
@@ -159,7 +160,7 @@ export function ChartHistoryView({ gameState, onClose }: ChartHistoryViewProps) 
                        <div className="w-[60px] md:w-[70px] flex flex-col items-center justify-end px-1 border-l border-r border-gray-300">
                           <span className="font-black text-xl md:text-2xl leading-none">{entry.peakPos}</span>
                           <div className="bg-[#00f878] text-black text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 mt-1 align-bottom whitespace-nowrap">
-                             {(entry as any).weeksAtPeak ?? 1} WKS
+                             {entry.weeksAtPeak ?? 1} WKS
                           </div>
                        </div>
                        

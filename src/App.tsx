@@ -1374,7 +1374,7 @@ export default function App() {
                 <div className="space-y-4 mb-4">
                   <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
                      <h3 className="text-sm font-bold text-white mb-1 tracking-tight">📊 Dynamic Charts & Streams</h3>
-                     <p className="text-xs text-white/50 leading-relaxed">Player songs now properly calculate daily streams in Apple Music, Amazon Music, and YouTube Music. NPCs now have platform-specific performance multipliers.</p>
+                     <p className="text-xs text-white/50 leading-relaxed">Player songs now properly calculate daily streams in Apple Music, Amazon Music, and YouTube Music. NPCs now have platform-specific performance multipliers. Chart histories display weeks at peak properly.</p>
                   </div>
                   <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
                      <h3 className="text-sm font-bold text-white mb-1 tracking-tight">🎵 Album Types & EPs</h3>

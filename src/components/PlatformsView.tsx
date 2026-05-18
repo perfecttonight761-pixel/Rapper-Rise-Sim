@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GameState, Song, Album, Release } from '../types';
 import { Play, Heart, MoreHorizontal, CheckCircle2, ChevronRight, Music2, Disc, User, ChevronLeft, Share2, Plus } from 'lucide-react';
+import { generateNPCSongs, generateNPCAlbums } from '../constants';
 
 interface PlatformsViewProps {
   gameState: GameState;
@@ -28,18 +29,34 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
   
   const [selectedAppleRelease, setSelectedAppleRelease] = useState<Release | null>(null);
   const [showAllAppleDiscography, setShowAllAppleDiscography] = useState(false);
+  const [appleMusicTab, setAppleMusicTab] = useState<'profile' | 'charts'>('profile');
+  const [appleMusicChart, setAppleMusicChart] = useState<'global_song' | 'global_album' | 'america' | 'europe' | 'latin_america' | null>(null);
   
   const [selectedAmazonRelease, setSelectedAmazonRelease] = useState<Release | null>(null);
   const [showAllAmazonDiscography, setShowAllAmazonDiscography] = useState(false);
   const [amazonHighlightId, setAmazonHighlightId] = useState<string | null>(null);
   const [isSelectingAmazonHighlight, setIsSelectingAmazonHighlight] = useState(false);
+  const [amazonMusicTab, setAmazonMusicTab] = useState<'profile' | 'charts'>('profile');
+  const [amazonMusicChart, setAmazonMusicChart] = useState<'global_song' | 'global_album' | 'america' | 'europe' | 'latin_america' | null>(null);
 
   const publishedReleases = gameState.releases.filter(r => r.status === 'Published');
-  const albums = publishedReleases.filter(r => r.type === 'Album') as Album[];
+
+  const isProject = (type: string) => ['Album', 'EP', 'Single Pack', 'Deluxe Album'].includes(type);
+  const projects = publishedReleases.filter(r => isProject(r.type));
+  const allProjectTrackIds = new Set(projects.flatMap(p => (p as Album).trackIds || []));
+
+  const albums = publishedReleases.filter(r => ['Album', 'Deluxe Album'].includes(r.type)) as Album[];
+  const epsAndSinglePacks = publishedReleases.filter(r => ['EP', 'Single Pack'].includes(r.type)) as Album[];
+  
+  const standaloneSingles = publishedReleases.filter(r => r.type === 'Single' && !allProjectTrackIds.has(r.id));
+  const singlesAndEPs = [...epsAndSinglePacks, ...standaloneSingles];
+  
+  const standaloneReleases = [...albums, ...singlesAndEPs];
+  const songs = publishedReleases.filter(r => r.type === 'Single') as Song[];
 
   const handleSelectAmazonRelease = (rel: Release) => {
-     if (rel.type === 'Single' && (rel as Song).isBSide) {
-        const album = albums.find(a => a.trackIds.includes(rel.id));
+     if (rel.type === 'Single' && allProjectTrackIds.has(rel.id)) {
+        const album = projects.find(a => (a as Album).trackIds.includes(rel.id));
         if (album) {
            setSelectedAmazonRelease(album);
            return;
@@ -49,8 +66,8 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
   };
 
   const handleSelectRelease = (rel: Release) => {
-     if (rel.type === 'Single' && (rel as Song).isBSide) {
-        const album = albums.find(a => a.trackIds.includes(rel.id));
+     if (rel.type === 'Single' && allProjectTrackIds.has(rel.id)) {
+        const album = projects.find(a => (a as Album).trackIds.includes(rel.id));
         if (album) {
            setSelectedSpotifyRelease(album);
            return;
@@ -58,8 +75,6 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
      }
      setSelectedSpotifyRelease(rel);
   };
-  const standaloneReleases = publishedReleases.filter(r => r.type === 'Album' || (r.type === 'Single' && !(r as Song).isBSide));
-  const songs = publishedReleases.filter(r => r.type === 'Single') as Song[];
 
   const getPlatformStreams = (release: any, plat: 'spotify' | 'appleMusic' | 'youtubeMusic' | 'amazonMusic') => {
     if (!release.streams) return 0;
@@ -110,10 +125,11 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
   const getTopSongs = (plat: 'spotify' | 'appleMusic' | 'youtubeMusic' | 'amazonMusic', limit: number = 5) => {
     const today = new Date(gameState.time.startDate);
     today.setDate(today.getDate() + gameState.time.daysPassed);
+    const currentDateStr = today.toISOString();
     const getDailyPerf = (song: typeof songs[0]) => {
-      const relDate = new Date(song.releaseDate!);
+      const relDate = new Date(song.releaseDate || currentDateStr);
       const age = Math.max(1, (today.getTime() - relDate.getTime()) / (1000 * 3600 * 24));
-      return getPlatformStreams(song, plat) / age;
+      return song.lastDailyStreams?.[plat] || ((getPlatformStreams(song, plat) / age) || 0);
     };
     return [...songs].sort((a, b) => getDailyPerf(b) - getDailyPerf(a)).slice(0, limit);
   };
@@ -302,8 +318,8 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
               </div>
               <div className="p-6 md:px-12 flex flex-col gap-6">
                  {standaloneReleases.slice().reverse().filter(rel => {
-                    if (discoFilter === 'Albums') return rel.type === 'Album';
-                    if (discoFilter === 'Singles') return rel.type === 'Single';
+                    if (discoFilter === 'Albums') return ['Album', 'Deluxe Album'].includes(rel.type);
+                    if (discoFilter === 'Singles') return ['EP', 'Single Pack', 'Single'].includes(rel.type);
                     return true;
                  }).map((rel, i) => (
                     <div key={rel.id} className="flex gap-4 items-center group cursor-pointer hover:bg-white/5 p-2 -mx-2 rounded-lg" onClick={() => handleSelectRelease(rel)}>
@@ -380,7 +396,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
 
                  {/* Tracklist */}
                  <div className="w-full flex flex-col gap-1">
-                    {(selectedSpotifyRelease.type === 'Album' 
+                    {(['Album', 'EP', 'Single Pack', 'Deluxe Album'].includes(selectedSpotifyRelease.type) 
                       ? (selectedSpotifyRelease as Album).trackIds.map(tid => gameState.releases.find(r => r?.id === tid)) 
                       : [selectedSpotifyRelease]).map((t, i) => t && (
                        <div key={t.id || i} className="flex items-center justify-between py-2 px-2 hover:bg-white/10 rounded-md group cursor-pointer transition-colors">
@@ -405,8 +421,8 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
   };
 
   const handleSelectAppleRelease = (rel: Release) => {
-     if (rel.type === 'Single' && (rel as Song).isBSide) {
-        const album = albums.find(a => a.trackIds.includes(rel.id));
+     if (rel.type === 'Single' && allProjectTrackIds.has(rel.id)) {
+        const album = projects.find(a => (a as Album).trackIds.includes(rel.id));
         if (album) {
            setSelectedAppleRelease(album);
            return;
@@ -416,107 +432,271 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
   };
 
   const renderAppleMusic = () => {
+    const rawAm = 0.50 * (1 + ((gameState.popularity.america || 0) / 100));
+    const rawEu = 0.35 * (1 + ((gameState.popularity.europe || 0) / 100));
+    const rawLa = 0.15 * (1 + ((gameState.popularity.latinAmerica || 0) / 100));
+    const totalRaw = rawAm + rawEu + rawLa;
+    const amPerc = rawAm / totalRaw;
+    const euPerc = rawEu / totalRaw;
+    const laPerc = rawLa / totalRaw;
+
     const topSongs = getTopSongs('appleMusic', 5);
-    const latestRelease = getLatestRelease();
-    const appleAlbums = standaloneReleases.filter(r => r.type === 'Album').slice().reverse();
-    const appleSingles = standaloneReleases.filter(r => r.type === 'Single').slice().reverse();
+    const appleAlbums = albums.slice().reverse();
+    const appleSingles = singlesAndEPs.slice().reverse();
+
+    const currentWeekNumber = Math.max(1, Math.floor(gameState.time.daysPassed / 7)); 
+    const currentWeekFluctuation = 1 + (Math.sin(currentWeekNumber / 10) * 0.05);
+    const pName = gameState.artist?.name || '';
+    const npcSingles = generateNPCSongs(currentWeekFluctuation, currentWeekNumber, pName);
+    const npcAlbums = generateNPCAlbums(currentWeekFluctuation, currentWeekNumber, pName);
+
+    const currentDateObj = new Date(gameState.time.startDate);
+    currentDateObj.setDate(currentDateObj.getDate() + gameState.time.daysPassed);
+    const currentDateStr = currentDateObj.toISOString();
+
+    const getAppleSongsChart = (region: 'global' | 'america' | 'europe' | 'latin_america') => {
+        const playerItems = songs.map(s => {
+            const age = Math.max(1, Math.floor((currentDateObj.getTime() - new Date(s.releaseDate || currentDateStr).getTime()) / (1000 * 3600 * 24)));
+            let streams = s.lastDailyStreams?.appleMusic || ((getPlatformStreams(s, 'appleMusic') / age) || 0);
+            let val = streams;
+            if (region === 'america') val = Math.floor(streams * amPerc) || 0;
+            if (region === 'europe') val = Math.floor(streams * euPerc) || 0;
+            if (region === 'latin_america') val = Math.floor(streams * laPerc) || 0;
+            return { song: s, streams: val, artist: pName, isPlayer: true };
+        });
+
+        const npcItems = npcSingles.map(npc => {
+            const hash = (npc.title.charCodeAt(0) || 0) + (npc.artist.charCodeAt(0) || 0);
+            const platformMulti = 0.5 + (((hash * 3) % 13) / 10);
+            let streams = Math.floor(npc.points * 6 * platformMulti); 
+            
+            const amFactor = 0.5 + ((hash % 11) / 10);
+            const euFactor = 0.5 + (((hash + 3) % 11) / 10);
+            const laFactor = 0.5 + (((hash + 7) % 11) / 10);
+            const totalFactor = (amFactor * 0.5) + (euFactor * 0.35) + (laFactor * 0.15);
+
+            let val = streams;
+            if (region === 'america') val = Math.floor(streams * (amFactor * 0.5 / totalFactor));
+            if (region === 'europe') val = Math.floor(streams * (euFactor * 0.35 / totalFactor));
+            if (region === 'latin_america') val = Math.floor(streams * (laFactor * 0.15 / totalFactor));
+            return { song: npc, streams: val, artist: npc.artist, isPlayer: false };
+        });
+
+        return [...playerItems, ...npcItems].sort((a,b) => b.streams - a.streams).slice(0, 100);
+    };
+
+    const globalAlbumsList = projects.map(p => {
+        const age = Math.max(1, Math.floor((currentDateObj.getTime() - new Date(p.releaseDate || currentDateStr).getTime()) / (1000 * 3600 * 24)));
+        let streams = p.lastDailyStreams?.appleMusic || ((getPlatformStreams(p, 'appleMusic') / Math.max(1, age * 0.8)) || 0);
+        return { album: p, streams, artist: pName, isPlayer: true };
+    });
+    
+    const npcAlbumsList = npcAlbums.map(npc => {
+        const hash = (npc.title.charCodeAt(0) || 0) + (npc.artist.charCodeAt(0) || 0);
+        const platformMulti = 0.5 + (((hash * 3) % 13) / 10);
+        let streams = Math.floor(npc.points * 4 * platformMulti); 
+        return { album: npc, streams, artist: npc.artist, isPlayer: false };
+    });
+
+    const combinedAlbumsList = [...globalAlbumsList, ...npcAlbumsList].sort((a,b) => b.streams - a.streams).slice(0, 200);
 
     return (
-      <div className="bg-white text-black min-h-screen flex flex-col font-sans selection:bg-[#fa243c]/10 pb-20 relative">
-        <div className="h-[35rem] relative flex flex-col justify-end p-8 md:p-24 overflow-hidden shrink-0">
-           {gameState.artist.image ? <img src={gameState.artist.image || undefined} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-zinc-100" />}
-           <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent z-10" />
-           <div className="relative z-20 w-full max-w-7xl mx-auto text-left">
-              <span className="text-red-500 font-black uppercase text-[10px] tracking-[0.2em] mb-4 block">Artist Profile</span>
-              <h1 className="text-7xl md:text-[8rem] font-black tracking-tighter leading-none mb-8">{gameState.artist.name}</h1>
-              <div className="flex gap-4">
-                 <button className="bg-[#fa243c] text-white px-10 py-4 rounded-xl font-black text-sm uppercase flex items-center gap-3 hover:scale-105 transition-transform"><Play className="w-5 h-5 fill-current" /> Play</button>
-                 <button className="bg-zinc-100 px-10 py-4 rounded-xl font-black text-sm uppercase flex items-center gap-3 hover:bg-zinc-200 transition-colors"><Heart className="w-5 h-5" /> Library</button>
-              </div>
-           </div>
-        </div>
+      <div className="bg-white text-black min-h-screen flex flex-col font-sans selection:bg-[#fa243c]/10 pb-32 relative">
+        {appleMusicTab === 'profile' ? (
+        <>
+            <div className="h-[35rem] relative flex flex-col justify-end p-8 md:p-24 overflow-hidden shrink-0">
+               {gameState.artist.image ? <img src={gameState.artist.image || undefined} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-zinc-100" />}
+               <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent z-10" />
+               <div className="relative z-20 w-full max-w-7xl mx-auto text-left">
+                  <span className="text-red-500 font-black uppercase text-[10px] tracking-[0.2em] mb-4 block">Artist Profile</span>
+                  <h1 className="text-7xl md:text-[8rem] font-black tracking-tighter leading-none mb-8">{gameState.artist.name}</h1>
+                  <div className="flex gap-4">
+                     <button className="bg-[#fa243c] text-white px-10 py-4 rounded-xl font-black text-sm uppercase flex items-center gap-3 hover:scale-105 transition-transform"><Play className="w-5 h-5 fill-current" /> Play</button>
+                     <button className="bg-zinc-100 px-10 py-4 rounded-xl font-black text-sm uppercase flex items-center gap-3 hover:bg-zinc-200 transition-colors"><Heart className="w-5 h-5" /> Library</button>
+                  </div>
+               </div>
+            </div>
 
-        <div className="max-w-7xl mx-auto w-full p-8 md:p-24 text-left pt-0 md:pt-0 pb-12">
-           <div className="flex justify-between items-end border-b border-zinc-100 pb-4 mb-8">
-              <h2 className="text-3xl font-black">Top Songs</h2>
-           </div>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
-              {topSongs.map((song, i) => (
-                 <div key={song.id} className="flex items-center gap-4 py-3 group cursor-pointer border-b border-zinc-50 hover:bg-zinc-50 px-4 rounded-lg transition-colors" onClick={() => handleSelectAppleRelease(song)}>
-                    <span className="w-4 text-zinc-300 font-bold">{i+1}</span>
-                    <div className="w-12 h-12 bg-zinc-100 rounded-lg overflow-hidden shrink-0">{song.coverImage ? <img src={song.coverImage || undefined} className="w-full h-full object-cover" /> : <Disc className="m-auto mt-3 text-zinc-300" />}</div>
-                    <div className="flex-1 flex flex-col">
-                       <span className="font-bold text-base leading-tight group-hover:text-[#fa243c] transition-colors">{song.title}</span>
-                    </div>
-                    <MoreHorizontal className="text-zinc-300 group-hover:text-red-500 transition-colors" />
-                 </div>
-              ))}
-           </div>
-        </div>
-
-        {appleAlbums.length > 0 && (
-           <div className="max-w-7xl mx-auto w-full px-8 md:px-24 text-left pb-12">
-              <div className="flex justify-between items-end border-b border-zinc-100 pb-4 mb-8">
-                 <h2 className="text-3xl font-black">Albums</h2>
-                 <button className="text-[#fa243c] font-bold text-sm tracking-wide uppercase group flex items-center hover:opacity-80 transition-opacity" onClick={() => setShowAllAppleDiscography(true)}>
-                    See All <ChevronRight className="w-4 h-4 ml-1" />
-                 </button>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                 {appleAlbums.slice(0, 5).map(album => (
-                    <div key={album.id} className="flex flex-col group cursor-pointer" onClick={() => handleSelectAppleRelease(album)}>
-                       <div className="w-full aspect-square bg-zinc-100 rounded-xl overflow-hidden mb-3 shadow-[0_4px_12px_rgba(0,0,0,0.05)] shadow-zinc-200">
-                          {album.coverImage ? <img src={album.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-16 h-16 text-zinc-300 m-auto mt-12" />}
-                       </div>
-                       <span className="font-bold text-[15px] leading-tight truncate">{album.title}</span>
-                       <span className="text-zinc-500 text-[13px] mt-0.5">{new Date(album.releaseDate!).getFullYear()}</span>
-                    </div>
-                 ))}
-              </div>
-           </div>
-        )}
-
-        {appleSingles.length > 0 && (
-           <div className="max-w-7xl mx-auto w-full px-8 md:px-24 text-left pb-12">
-              <div className="flex justify-between items-end border-b border-zinc-100 pb-4 mb-8">
-                 <h2 className="text-3xl font-black">Singles & EPs</h2>
-                 <button className="text-[#fa243c] font-bold text-sm tracking-wide uppercase group flex items-center hover:opacity-80 transition-opacity" onClick={() => setShowAllAppleDiscography(true)}>
-                    See All <ChevronRight className="w-4 h-4 ml-1" />
-                 </button>
-              </div>
-              <div className="flex overflow-x-auto pb-6 gap-6 hide-scrollbar -mx-8 px-8 md:-mx-24 md:px-24">
-                 {appleSingles.map(single => (
-                    <div key={single.id} className="flex flex-col min-w-[150px] max-w-[150px] group cursor-pointer" onClick={() => handleSelectAppleRelease(single)}>
-                       <div className="w-full aspect-square bg-zinc-100 rounded-xl overflow-hidden mb-3 shadow-[0_4px_12px_rgba(0,0,0,0.05)] shadow-zinc-200">
-                          {single.coverImage ? <img src={single.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-12 h-12 text-zinc-300 m-auto mt-10" />}
-                       </div>
-                       <span className="font-bold text-[15px] leading-tight truncate">{single.title}</span>
-                       <span className="text-zinc-500 text-[13px] mt-0.5">{new Date(single.releaseDate!).getFullYear()}</span>
-                    </div>
-                 ))}
-              </div>
-           </div>
-        )}
-
-        {/* About Section */}
-        <div className="max-w-7xl mx-auto w-full px-8 md:px-24 text-left pb-12">
-           <h2 className="text-3xl font-black mb-8 border-b border-zinc-100 pb-4">About</h2>
-           <div className="bg-zinc-50 rounded-2xl p-8 md:p-12 relative overflow-hidden group">
-              <div className="absolute inset-0 opacity-10 bg-cover bg-center mix-blend-multiply blur-xl scale-110 transition-transform duration-1000 group-hover:scale-125" style={{ backgroundImage: gameState.artist.image ? `url(${gameState.artist.image})` : 'none' }}></div>
-              <div className="relative z-10">
-                 <h3 className="text-4xl font-black mb-4 tracking-tighter">{gameState.artist.name}</h3>
-                 <p className="text-zinc-600 text-lg leading-relaxed max-w-3xl">
-                     {gameState.artist.socialProfile?.bio || `A trailblazing artist from ${gameState.artist.country}, ${gameState.artist.name} has captured the attention of listeners around the world. With multiple chart-topping hits and an ever-growing fanbase, their unique sound continues to evolve and inspire.`}
-                 </p>
-                 <div className="mt-8 flex gap-8">
-                     <div>
-                         <p className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-1">Hometown</p>
-                         <p className="font-bold">{gameState.artist.country}</p>
+            <div className="max-w-7xl mx-auto w-full p-8 md:p-24 text-left pt-0 md:pt-0 pb-12">
+               <div className="flex justify-between items-end border-b border-zinc-100 pb-4 mb-8">
+                  <h2 className="text-3xl font-black">Top Songs</h2>
+               </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
+                  {topSongs.map((song, i) => (
+                     <div key={song.id} className="flex items-center gap-4 py-3 group cursor-pointer border-b border-zinc-50 hover:bg-zinc-50 px-4 rounded-lg transition-colors" onClick={() => handleSelectAppleRelease(song)}>
+                        <span className="w-4 text-zinc-300 font-bold">{i+1}</span>
+                        <div className="w-12 h-12 bg-zinc-100 rounded-lg overflow-hidden shrink-0">{song.coverImage ? <img src={song.coverImage || undefined} className="w-full h-full object-cover" /> : <Disc className="m-auto mt-3 text-zinc-300" />}</div>
+                        <div className="flex-1 flex flex-col">
+                           <span className="font-bold text-base leading-tight group-hover:text-[#fa243c] transition-colors">{song.title}</span>
+                        </div>
+                        <MoreHorizontal className="text-zinc-300 group-hover:text-red-500 transition-colors" />
                      </div>
+                  ))}
+               </div>
+            </div>
+
+            {appleAlbums.length > 0 && (
+               <div className="max-w-7xl mx-auto w-full px-8 md:px-24 text-left pb-12">
+                  <div className="flex justify-between items-end border-b border-zinc-100 pb-4 mb-8">
+                     <h2 className="text-3xl font-black">Albums</h2>
+                     <button className="text-[#fa243c] font-bold text-sm tracking-wide uppercase group flex items-center hover:opacity-80 transition-opacity" onClick={() => setShowAllAppleDiscography(true)}>
+                        See All <ChevronRight className="w-4 h-4 ml-1" />
+                     </button>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                     {appleAlbums.slice(0, 5).map(album => (
+                        <div key={album.id} className="flex flex-col group cursor-pointer" onClick={() => handleSelectAppleRelease(album)}>
+                           <div className="w-full aspect-square bg-zinc-100 rounded-xl overflow-hidden mb-3 shadow-[0_4px_12px_rgba(0,0,0,0.05)] shadow-zinc-200">
+                              {album.coverImage ? <img src={album.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-16 h-16 text-zinc-300 m-auto mt-12" />}
+                           </div>
+                           <span className="font-bold text-[15px] leading-tight truncate">{album.title}</span>
+                           <span className="text-zinc-500 text-[13px] mt-0.5">{new Date(album.releaseDate!).getFullYear()}</span>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
+
+            {appleSingles.length > 0 && (
+               <div className="max-w-7xl mx-auto w-full px-8 md:px-24 text-left pb-12">
+                  <div className="flex justify-between items-end border-b border-zinc-100 pb-4 mb-8">
+                     <h2 className="text-3xl font-black">Singles & EPs</h2>
+                     <button className="text-[#fa243c] font-bold text-sm tracking-wide uppercase group flex items-center hover:opacity-80 transition-opacity" onClick={() => setShowAllAppleDiscography(true)}>
+                        See All <ChevronRight className="w-4 h-4 ml-1" />
+                     </button>
+                  </div>
+                  <div className="flex overflow-x-auto pb-6 gap-6 hide-scrollbar -mx-8 px-8 md:-mx-24 md:px-24">
+                     {appleSingles.map(single => (
+                        <div key={single.id} className="flex flex-col min-w-[150px] max-w-[150px] group cursor-pointer" onClick={() => handleSelectAppleRelease(single)}>
+                           <div className="w-full aspect-square bg-zinc-100 rounded-xl overflow-hidden mb-3 shadow-[0_4px_12px_rgba(0,0,0,0.05)] shadow-zinc-200">
+                              {single.coverImage ? <img src={single.coverImage || undefined} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-12 h-12 text-zinc-300 m-auto mt-10" />}
+                           </div>
+                           <span className="font-bold text-[15px] leading-tight truncate">{single.title}</span>
+                           <span className="text-zinc-500 text-[13px] mt-0.5">{new Date(single.releaseDate!).getFullYear()}</span>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
+
+            {/* About Section */}
+            <div className="max-w-7xl mx-auto w-full px-8 md:px-24 text-left pb-12">
+               <h2 className="text-3xl font-black mb-8 border-b border-zinc-100 pb-4">About</h2>
+               <div className="bg-zinc-50 rounded-2xl p-8 md:p-12 relative overflow-hidden group">
+                  <div className="absolute inset-0 opacity-10 bg-cover bg-center mix-blend-multiply blur-xl scale-110 transition-transform duration-1000 group-hover:scale-125" style={{ backgroundImage: gameState.artist.image ? `url(${gameState.artist.image})` : 'none' }}></div>
+                  <div className="relative z-10">
+                     <h3 className="text-4xl font-black mb-4 tracking-tighter">{gameState.artist.name}</h3>
+                     <p className="text-zinc-600 text-lg leading-relaxed max-w-3xl">
+                         {gameState.artist.socialProfile?.bio || `A trailblazing artist from ${gameState.artist.country}, ${gameState.artist.name} has captured the attention of listeners around the world. With multiple chart-topping hits and an ever-growing fanbase, their unique sound continues to evolve and inspire.`}
+                     </p>
+                     <div className="mt-8 flex gap-8">
+                         <div>
+                             <p className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-1">Hometown</p>
+                             <p className="font-bold">{gameState.artist.country}</p>
+                         </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+        </>
+        ) : (
+        <>
+           <div className="max-w-7xl mx-auto w-full p-8 md:p-24 text-left pb-12">
+              <h1 className="text-5xl font-black tracking-tighter mb-4 mt-8">Charts</h1>
+              <p className="text-xl text-zinc-500 font-medium mb-12 border-b border-zinc-100 pb-6">See what's popular locally and globally on Apple Music.</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+                 {[
+                    { id: 'global_song', name: 'Top 100: Global', desc: 'The most-played songs around the world', color: 'from-[#fa243c] to-[#d81e32]' },
+                    { id: 'global_album', name: 'Top 200: Albums', desc: 'The most popular albums globally', color: 'from-orange-500 to-red-600' },
+                    { id: 'america', name: 'Top 100: America', desc: 'The most-played songs in America', color: 'from-blue-500 to-indigo-600' },
+                    { id: 'europe', name: 'Top 100: Europe', desc: 'The most-played songs in Europe', color: 'from-emerald-400 to-teal-500' },
+                    { id: 'latin_america', name: 'Top 100: Latin America', desc: 'The most-played songs in Latin America', color: 'from-yellow-400 to-orange-500' }
+                 ].map(chart => (
+                    <div 
+                       key={chart.id} 
+                       onClick={() => setAppleMusicChart(chart.id as any)}
+                       className={`rounded-2xl p-6 text-white cursor-pointer hover:scale-105 transition-transform bg-gradient-to-br ${chart.color} shadow-lg shadow-zinc-200 flex flex-col justify-between min-h-[160px]`}
+                    >
+                       <div>
+                          <span className="uppercase text-[10px] font-black tracking-[0.2em] opacity-80 mb-2 block">Apple Music</span>
+                          <h3 className="text-2xl font-black leading-tight mb-2">{chart.name}</h3>
+                       </div>
+                       <p className="text-sm font-medium opacity-90">{chart.desc}, updated every day.</p>
+                    </div>
+                 ))}
+              </div>
+           </div>
+        </>
+        )}
+
+        {/* View Chart Overlay */}
+        {appleMusicChart && (
+           <div className="fixed inset-0 z-[500] bg-white overflow-y-auto">
+              <div dangerouslySetInnerHTML={{__html:`<style>.am-bg-gradient { background: linear-gradient(to bottom, #d81e32 0%, #a81c2f 30%, #7b1222 100%); }</style>`}} />
+              <div className="min-h-full flex flex-col am-bg-gradient text-white">
+                 <div className="sticky top-0 z-20 flex items-center justify-between p-4 px-6">
+                    <button onClick={() => setAppleMusicChart(null)} className="flex items-center text-white font-bold hover:opacity-70 transition-opacity bg-white/20 p-2 rounded-full backdrop-blur-md">
+                       <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <button className="flex items-center text-white hover:opacity-70 transition-opacity bg-white/20 p-2 rounded-full backdrop-blur-md">
+                       <MoreHorizontal className="w-6 h-6" />
+                    </button>
+                 </div>
+                 
+                 <div className="flex flex-col items-center text-center px-6 pt-8 pb-12">
+                    <h1 className="text-4xl font-black mb-2">{
+                       appleMusicChart === 'global_song' ? 'Top 100: Global' :
+                       appleMusicChart === 'global_album' ? 'Top 200: Albums' :
+                       appleMusicChart === 'america' ? 'Top 100: America' :
+                       appleMusicChart === 'europe' ? 'Top 100: Europe' :
+                       'Top 100: Latin America'
+                    }</h1>
+                    <p className="text-white/80 font-medium text-xl mb-2">Apple Music</p>
+                    <p className="text-white/60 text-sm mb-8">Updated today</p>
+                    <button className="bg-white text-[#d81e32] px-16 py-4 rounded-full font-black text-lg uppercase flex items-center gap-3 hover:scale-105 transition-transform shadow-xl">
+                       <Play className="w-5 h-5 fill-current" /> Play
+                    </button>
+                    <p className="text-white/80 text-sm mt-8 max-w-sm">
+                       The {appleMusicChart === 'global_album' ? 'most popular albums' : 'most-played songs'} {['global_song', 'global_album'].includes(appleMusicChart) ? 'around the world' : `in ${appleMusicChart === 'america' ? 'America' : appleMusicChart === 'europe' ? 'Europe' : 'Latin America'}`}, updated every day.
+                    </p>
+                 </div>
+
+                 <div className="w-full max-w-4xl mx-auto px-4 md:px-8 pb-24">
+                    {appleMusicChart === 'global_album' ? (
+                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                           {combinedAlbumsList.map((item, i) => (
+                              <div key={item.album.id} className="flex flex-col group cursor-pointer" onClick={() => { setAppleMusicChart(null); if(item.isPlayer) setSelectedAppleRelease(item.album); }}>
+                                 <div className="w-full aspect-square bg-white/5 rounded-xl overflow-hidden mb-3 relative border border-white/10">
+                                    {item.album.coverImage ? <img src={item.album.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-16 h-16 text-white/30 m-auto mt-12" />}
+                                    <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-xs font-bold">{i+1}</div>
+                                 </div>
+                                 <span className="font-bold text-[15px] leading-tight truncate">{item.album.title}</span>
+                                 <span className="text-white/60 text-[13px]">{item.artist}</span>
+                              </div>
+                           ))}
+                       </div>
+                    ) : (
+                       <div className="flex flex-col border-t border-white/10">
+                           {getAppleSongsChart(appleMusicChart as any).map((item, i) => (
+                              <div key={item.song.id} className="flex items-center gap-4 py-3 border-b border-white/10 hover:bg-white/5 px-2 -mx-2 rounded-lg transition-colors cursor-pointer" onClick={() => { setAppleMusicChart(null); if(item.isPlayer) handleSelectAppleRelease(item.song); }}>
+                                 <div className="w-12 h-12 bg-white/5 rounded object-cover shrink-0 overflow-hidden relative">
+                                    {item.song.coverImage ? <img src={item.song.coverImage} className="w-full h-full object-cover" /> : <Disc className="m-auto mt-3 text-white/30" />}
+                                 </div>
+                                 <span className="w-6 font-bold text-lg text-white/60 shrink-0 text-center">{i+1}</span>
+                                 <div className="flex-1 flex flex-col overflow-hidden">
+                                    <span className="font-bold text-lg leading-tight truncate">{item.song.title}</span>
+                                    <span className="text-white/60 text-sm truncate">{item.artist}</span>
+                                 </div>
+                                 <MoreHorizontal className="text-white/40 group-hover:text-white shrink-0" />
+                              </div>
+                           ))}
+                       </div>
+                    )}
                  </div>
               </div>
            </div>
-        </div>
+        )}
 
         {/* Detail Popup Form */}
         {selectedAppleRelease && (
@@ -545,7 +725,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                  <div className="flex-1 w-full pt-2">
                     <h3 className="text-xl font-bold border-b border-zinc-200 pb-4 mb-4">Tracks</h3>
                     <div className="flex flex-col">
-                       {(selectedAppleRelease.type === 'Album' 
+                       {(['Album', 'EP', 'Single Pack', 'Deluxe Album'].includes(selectedAppleRelease.type) 
                          ? (selectedAppleRelease as Album).trackIds.map(tid => gameState.releases.find(r => r?.id === tid)) 
                          : [selectedAppleRelease]).map((t, i) => t && (
                           <div key={t.id || i} className="flex items-center justify-between py-3.5 border-b border-zinc-100 group">
@@ -608,6 +788,24 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
               </div>
            </div>
         )}
+
+        {/* Bottom Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-md border-t border-zinc-200 z-[300] flex justify-around items-center px-4 md:px-24">
+           <button 
+              onClick={() => setAppleMusicTab('profile')} 
+              className={`flex flex-col items-center justify-center w-24 gap-1 ${appleMusicTab === 'profile' ? 'text-[#fa243c]' : 'text-zinc-400 hover:text-zinc-600'}`}
+           >
+              <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+              <span className="text-[10px] font-semibold">Profile</span>
+           </button>
+           <button 
+              onClick={() => setAppleMusicTab('charts')} 
+              className={`flex flex-col items-center justify-center w-24 gap-1 ${appleMusicTab === 'charts' ? 'text-[#fa243c]' : 'text-zinc-400 hover:text-zinc-600'}`}
+           >
+              <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11V3H8v6H2v12h20V11h-6zm-6-6h4v14h-4V5zm-6 6h4v8H4v-8zm16 8h-4v-6h4v6z"/></svg>
+              <span className="text-[10px] font-semibold">Charts</span>
+           </button>
+        </div>
       </div>
     );
   };
@@ -615,14 +813,80 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
   const renderAmazonMusic = () => {
     const topSongs = getTopSongs('amazonMusic', 10);
     const amazonAlbums = [...albums].sort((a, b) => getPlatformStreams(b, 'amazonMusic') - getPlatformStreams(a, 'amazonMusic'));
-    const amazonSingles = [...songs].sort((a, b) => new Date(b.releaseDate!).getTime() - new Date(a.releaseDate!).getTime());
+    const amazonSingles = [...singlesAndEPs].sort((a, b) => new Date(b.releaseDate!).getTime() - new Date(a.releaseDate!).getTime()).reverse();
     const highlightRelease = amazonHighlightId ? publishedReleases.find(r => r?.id === amazonHighlightId) : getPopularRelease('amazonMusic');
     const followersText = Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short", maximumFractionDigits: 1 }).format(calculateListeners('amazonMusic'));
 
+    const rawAm = 0.50 * (1 + ((gameState.popularity.america || 0) / 100));
+    const rawEu = 0.35 * (1 + ((gameState.popularity.europe || 0) / 100));
+    const rawLa = 0.15 * (1 + ((gameState.popularity.latinAmerica || 0) / 100));
+    const totalRaw = rawAm + rawEu + rawLa;
+    const amPerc = rawAm / totalRaw;
+    const euPerc = rawEu / totalRaw;
+    const laPerc = rawLa / totalRaw;
+
+    const currentWeekNumber = Math.max(1, Math.floor(gameState.time.daysPassed / 7)); 
+    const currentWeekFluctuation = 1 + (Math.sin(currentWeekNumber / 10) * 0.05);
+    const pName = gameState.artist?.name || '';
+    const npcSingles = generateNPCSongs(currentWeekFluctuation, currentWeekNumber, pName);
+    const npcAlbums = generateNPCAlbums(currentWeekFluctuation, currentWeekNumber, pName);
+
+    const currentDateObj = new Date(gameState.time.startDate);
+    currentDateObj.setDate(currentDateObj.getDate() + gameState.time.daysPassed);
+    const currentDateStr = currentDateObj.toISOString();
+
+    const getAmazonSongsChart = (region: 'global' | 'america' | 'europe' | 'latin_america') => {
+        const playerItems = songs.map(s => {
+            const age = Math.max(1, Math.floor((currentDateObj.getTime() - new Date(s.releaseDate || currentDateStr).getTime()) / (1000 * 3600 * 24)));
+            let streams = s.lastDailyStreams?.amazonMusic || ((getPlatformStreams(s, 'amazonMusic') / age) || 0);
+            let val = streams;
+            if (region === 'america') val = Math.floor(streams * amPerc) || 0;
+            if (region === 'europe') val = Math.floor(streams * euPerc) || 0;
+            if (region === 'latin_america') val = Math.floor(streams * laPerc) || 0;
+            return { song: s, streams: val, artist: pName, isPlayer: true };
+        });
+
+        const npcItems = npcSingles.map(npc => {
+            const hash = (npc.title.charCodeAt(0) || 0) + (npc.artist.charCodeAt(0) || 0);
+            const platformMulti = 0.5 + (((hash * 7) % 13) / 10);
+            let streams = Math.floor(npc.points * 5 * platformMulti); 
+            
+            const amFactor = 0.5 + ((hash % 11) / 10);
+            const euFactor = 0.5 + (((hash + 3) % 11) / 10);
+            const laFactor = 0.5 + (((hash + 7) % 11) / 10);
+            const totalFactor = (amFactor * 0.5) + (euFactor * 0.35) + (laFactor * 0.15);
+
+            let val = streams;
+            if (region === 'america') val = Math.floor(streams * (amFactor * 0.5 / totalFactor));
+            if (region === 'europe') val = Math.floor(streams * (euFactor * 0.35 / totalFactor));
+            if (region === 'latin_america') val = Math.floor(streams * (laFactor * 0.15 / totalFactor));
+            return { song: npc, streams: val, artist: npc.artist, isPlayer: false };
+        });
+
+        return [...playerItems, ...npcItems].sort((a,b) => b.streams - a.streams).slice(0, 100);
+    };
+
+    const globalAlbumsList = projects.map(p => {
+        const age = Math.max(1, Math.floor((currentDateObj.getTime() - new Date(p.releaseDate || currentDateStr).getTime()) / (1000 * 3600 * 24)));
+        let streams = p.lastDailyStreams?.amazonMusic || ((getPlatformStreams(p, 'amazonMusic') / Math.max(1, age * 0.8)) || 0);
+        return { album: p, streams, artist: pName, isPlayer: true };
+    });
+    
+    const npcAlbumsList = npcAlbums.map(npc => {
+        const hash = (npc.title.charCodeAt(0) || 0) + (npc.artist.charCodeAt(0) || 0);
+        const platformMulti = 0.5 + (((hash * 7) % 13) / 10);
+        let streams = Math.floor(npc.points * 3.5 * platformMulti); 
+        return { album: npc, streams, artist: npc.artist, isPlayer: false };
+    });
+
+    const combinedAlbumsList = [...globalAlbumsList, ...npcAlbumsList].sort((a,b) => b.streams - a.streams).slice(0, 200);
+
     return (
-      <div className="bg-[#000000] text-white min-h-screen font-sans pb-24">
-         {/* Hero Background */}
-         <div className="relative h-[28rem] md:h-[32rem]">
+      <div className="bg-[#000000] text-white min-h-screen font-sans pb-32 relative">
+         {amazonMusicTab === 'profile' ? (
+         <>
+            {/* Hero Background */}
+            <div className="relative h-[28rem] md:h-[32rem]">
             {gameState.artist.image ? (
                <div className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url(${gameState.artist.image})` }}></div>
             ) : (
@@ -675,7 +939,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
          {amazonSingles.length > 0 && (
             <div className="pl-6 md:pl-12 mt-10 text-left">
                <div className="flex justify-between items-center pr-6 md:pr-12 mb-4">
-                  <h2 className="text-2xl font-black">Releases</h2>
+                  <h2 className="text-2xl font-black">Singles & EPs</h2>
                   <button className="px-4 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-xs font-bold uppercase transition-colors" onClick={() => setShowAllAmazonDiscography(true)}>See All</button>
                </div>
                <div className="flex overflow-x-auto pb-4 gap-4 hide-scrollbar">
@@ -686,7 +950,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                         </div>
                         <div className="flex flex-col mt-1">
                            <span className="font-bold text-[15px] truncate">{single.title}</span>
-                           <span className="text-white/60 text-[13px] truncate">Single • {new Date(single.releaseDate!).getFullYear()}</span>
+                           <span className="text-white/60 text-[13px] truncate">{single.type} • {new Date(single.releaseDate!).getFullYear()}</span>
                         </div>
                      </div>
                   ))}
@@ -785,8 +1049,8 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                <div className="w-full max-w-7xl mx-auto p-6 md:p-12 text-left">
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-8">
                      {standaloneReleases.slice().reverse().filter(rel => {
-                        if (discoFilter === 'Albums') return rel.type === 'Album';
-                        if (discoFilter === 'Singles') return rel.type === 'Single';
+                        if (discoFilter === 'Albums') return ['Album', 'Deluxe Album'].includes(rel.type);
+                        if (discoFilter === 'Singles') return ['EP', 'Single Pack', 'Single'].includes(rel.type);
                         return true;
                      }).map(rel => (
                         <div key={rel.id} className="flex flex-col group cursor-pointer" onClick={() => handleSelectAmazonRelease(rel)}>
@@ -829,7 +1093,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                   </div>
                   <div className="flex-1 w-full">
                      <div className="flex flex-col mb-12">
-                        {(selectedAmazonRelease as any).trackIds ? (
+                        {(['Album', 'EP', 'Single Pack', 'Deluxe Album'].includes(selectedAmazonRelease.type)) ? (
                            ((selectedAmazonRelease as any).trackIds as string[]).map((id, index) => {
                               const song = songs.find(s => s?.id === id);
                               if (!song) return null;
@@ -896,13 +1160,78 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
                      ))}
                   </div>
                </div>
+             </div>
+          )}
+          </>
+         ) : (
+            <div className="flex flex-col min-h-screen pt-12 pb-24 text-left">
+               <div className="px-4 md:px-8 flex gap-4 md:gap-8 flex-wrap border-b border-white/10 mb-8 sticky top-0 bg-[#000000]/80 backdrop-blur z-20 pt-4">
+                  {(['global_song', 'global_album', 'america', 'europe', 'latin_america'] as const).map(tab => (
+                     <button
+                        key={tab}
+                        onClick={() => setAmazonMusicChart(tab)}
+                        className={`pb-4 font-bold text-sm md:text-base capitalize transition-colors relative ${amazonMusicChart === tab ? 'text-[#00e0ff]' : 'text-white/60 hover:text-white'}`}
+                     >
+                        {tab.replace('_', ' ')}
+                        {amazonMusicChart === tab && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#00e0ff] rounded-t" />}
+                     </button>
+                  ))}
+               </div>
+
+               <div className="w-full max-w-4xl mx-auto px-4 md:px-8 pb-24">
+                  {amazonMusicChart === 'global_album' ? (
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                         {combinedAlbumsList.map((item, i) => (
+                            <div key={item.album.id} className="flex flex-col group cursor-pointer" onClick={() => { setAmazonMusicChart(null); if(item.isPlayer) setSelectedAmazonRelease(item.album); }}>
+                               <div className="w-full aspect-square bg-white/5 rounded-xl overflow-hidden mb-3 relative border border-white/10">
+                                  {item.album.coverImage ? <img src={item.album.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <Disc className="w-16 h-16 text-white/30 m-auto mt-12" />}
+                                  <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-xs font-bold">{i+1}</div>
+                               </div>
+                               <span className="font-bold text-[15px] leading-tight truncate">{item.album.title}</span>
+                               <span className="text-white/60 text-[13px]">{item.artist}</span>
+                            </div>
+                         ))}
+                     </div>
+                  ) : (
+                     <div className="flex flex-col border-t border-white/10">
+                         {getAmazonSongsChart(amazonMusicChart as any).map((item, i) => (
+                            <div key={item.song.id} className="flex items-center gap-4 py-3 border-b border-white/10 hover:bg-white/5 px-2 -mx-2 rounded-lg transition-colors cursor-pointer" onClick={() => { setAmazonMusicChart(null); if(item.isPlayer) handleSelectAmazonRelease(item.song); }}>
+                               <div className="w-12 h-12 bg-white/5 rounded object-cover shrink-0 overflow-hidden relative">
+                                  {item.song.coverImage ? <img src={item.song.coverImage} className="w-full h-full object-cover" /> : <Disc className="m-auto mt-3 text-white/30" />}
+                               </div>
+                               <span className="w-6 font-bold text-lg text-white/60 shrink-0 text-center">{i+1}</span>
+                               <div className="flex-1 flex flex-col overflow-hidden">
+                                  <span className="font-bold text-lg leading-tight truncate">{item.song.title}</span>
+                                  <span className="text-white/60 text-sm truncate">{item.artist}</span>
+                               </div>
+                               <MoreHorizontal className="text-white/40 group-hover:text-white shrink-0" />
+                            </div>
+                         ))}
+                     </div>
+                  )}
+               </div>
             </div>
          )}
+         {/* Bottom Navigation */}
+         <div className="fixed bottom-0 left-0 right-0 h-20 bg-[#000000]/90 backdrop-blur-md border-t border-white/10 z-[300] flex justify-around items-center px-4 md:px-24">
+            <button 
+               onClick={() => { setAmazonMusicChart(null); setAmazonMusicTab('profile'); }} 
+               className={`flex flex-col items-center justify-center w-24 gap-1 ${amazonMusicTab === 'profile' ? 'text-[#00e0ff]' : 'text-white/40 hover:text-white/60'}`}
+            >
+               <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+               <span className="text-[10px] font-semibold">Profile</span>
+            </button>
+            <button 
+               onClick={() => { setAmazonMusicChart('global_song'); setAmazonMusicTab('charts'); }} 
+               className={`flex flex-col items-center justify-center w-24 gap-1 ${amazonMusicTab === 'charts' ? 'text-[#00e0ff]' : 'text-white/40 hover:text-white/60'}`}
+            >
+               <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11V3H8v6H2v12h20V11h-6zm-6-6h4v14h-4V5zm-6 6h4v8H4v-8zm16 8h-4v-6h4v6z"/></svg>
+               <span className="text-[10px] font-semibold">Charts</span>
+            </button>
+         </div>
       </div>
     );
   };
-
-
 
   if (!platform) {
     return (

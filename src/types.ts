@@ -70,6 +70,8 @@ export interface BaseRelease {
   debutStreams?: number;
   lastDailyStreams?: {
     spotify: number;
+    appleMusic?: number;
+    amazonMusic?: number;
     youtubeMusic?: number;
     total: number;
   };

@@ -20,16 +20,19 @@ export function DiscographyView({ gameState, setGameState, currentDate }: Discog
   const [showAlbumSalesChart, setShowAlbumSalesChart] = useState(false);
 
   const isProject = (type: string) => ['Album', 'EP', 'Single Pack', 'Deluxe Album'].includes(type);
-  const albums = releases.filter(r => isProject(r.type));
-  const allAlbumTrackIds = new Set(albums.flatMap(a => (a as Album).trackIds));
+  const projects = releases.filter(r => isProject(r.type));
+  const allProjectTrackIds = new Set(projects.flatMap(p => (p as Album).trackIds || []));
   
-  const standaloneSingles = releases.filter(r => r.type === 'Single' && !allAlbumTrackIds.has(r.id));
-  const albumTracks = releases.filter(r => r.type === 'Single' && allAlbumTrackIds.has(r.id));
+  const albums = releases.filter(r => ['Album', 'Deluxe Album'].includes(r.type));
+  const epsAndSinglePacks = releases.filter(r => ['EP', 'Single Pack'].includes(r.type));
+
+  const standaloneSingles = releases.filter(r => r.type === 'Single' && !allProjectTrackIds.has(r.id));
+  const albumTracks = releases.filter(r => r.type === 'Single' && allProjectTrackIds.has(r.id));
 
   const sectionsByStatus = {
     Published: {
        Albums: albums.filter(r => r.status === 'Published'),
-      Singles: standaloneSingles.filter(r => r.status === 'Published'),
+      'Singles & EPs': [...epsAndSinglePacks, ...standaloneSingles].filter(r => r.status === 'Published'),
       'Album Tracks': albumTracks.filter(r => r.status === 'Published'),
     },
     Unreleased: {
@@ -82,8 +85,8 @@ export function DiscographyView({ gameState, setGameState, currentDate }: Discog
                 onShowStats={setStatsPopupRelease} 
               />
               <ReleaseSection 
-                title="Standalone Singles" 
-                items={sectionsByStatus.Published.Singles} 
+                title="Singles & EPs" 
+                items={sectionsByStatus.Published['Singles & EPs']} 
                 onSelectAlbum={setSelectedAlbum} 
                 onShowStats={setStatsPopupRelease} 
               />

@@ -625,6 +625,8 @@ export default function App() {
               },
               lastDailyStreams: {
                 spotify: sp,
+                appleMusic: ap,
+                amazonMusic: am,
                 youtubeMusic: yt,
                 total: dStreamsTotal
               },
@@ -1369,16 +1371,21 @@ export default function App() {
                    </div>
                 </div>
                 
-                <div className="space-y-4 mb-8">
+                <div className="space-y-4 mb-4">
                   <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">🎙️ Multiple Features</h3>
-                     <p className="text-xs text-white/50 leading-relaxed">You can now add up to 3 featured artists on a single track in the studio using the new feature dropdown.</p>
+                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">📊 Dynamic Charts & Streams</h3>
+                     <p className="text-xs text-white/50 leading-relaxed">Player songs now properly calculate daily streams in Apple Music, Amazon Music, and YouTube Music. NPCs now have platform-specific performance multipliers.</p>
                   </div>
                   <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">🔧 Bug Fixes</h3>
-                     <p className="text-xs text-white/50 leading-relaxed">Fixed Chart History peak position display bugs, Level Up issues past level 7, and Vaulted song covers syncing with album covers.</p>
+                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">🎵 Album Types & EPs</h3>
+                     <p className="text-xs text-white/50 leading-relaxed">You can now release Single Packs (1-3 tracks), EPs (4-7 tracks), and Full Albums (8+ tracks) in the studio.</p>
                   </div>
                   <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">📀 Deluxe Editions</h3>
+                     <p className="text-xs text-white/50 leading-relaxed">Extend your eras! Release Deluxe versions of your existing projects with new covers and bonus tracks from your discography.</p>
+                  </div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4">
                      <h3 className="text-sm font-bold text-white mb-2 tracking-tight flex items-center justify-center">Join Our Community</h3>
                      <div className="flex justify-center gap-4">
                          <a href="https://discord.gg/zNQ9d9J4e" target="_blank" rel="noopener noreferrer" className="bg-[#5865F2]/20 hover:bg-[#5865F2]/40 text-[#5865F2] border border-[#5865F2]/50 p-3 rounded-xl transition-colors flex items-center justify-center">
@@ -1389,7 +1396,6 @@ export default function App() {
                          </a>
                      </div>
                   </div>
-                </div>
                 <button onClick={() => setShowUpdatePopup(false)} className="w-full bg-white text-black py-4 rounded-xl font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-xl hover:bg-gray-200">
                   Got It, Let's Rap
                 </button>

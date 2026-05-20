@@ -1,4 +1,4 @@
-export type GameScreen = 'loading' | 'home' | 'saves' | 'create' | 'dashboard' | 'studio' | 'discography' | 'skills' | 'regions' | 'gigs' | 'platforms' | 'charts' | 'x' | 'google' | 'settings' | 'youtube' | 'plaques' | 'grammys' | 'merch' | 'wrapped' | 'tour';
+export type GameScreen = 'loading' | 'home' | 'saves' | 'create' | 'dashboard' | 'studio' | 'discography' | 'skills' | 'regions' | 'gigs' | 'platforms' | 'charts' | 'x' | 'google' | 'settings' | 'youtube' | 'plaques' | 'grammys' | 'merch' | 'wrapped' | 'tour' | 'tiktok';
 
 export type AwardCategory = 'Artist of the Year' | 'Song of the Year' | 'Album of the Year' | 'Record of the Year' | 'Best Pop Album' | 'Best Pop Duo/Group Performance' | 'Best Country Album' | 'Best Rap Album';
 
@@ -81,7 +81,7 @@ export interface BaseRelease {
   lastWeekSales?: number;
   currentWeekRadio?: number;
   lastWeekRadio?: number;
-  trend?: 'Flop' | 'Non-Hit' | 'Hit' | 'Mega Hit';
+  trend?: 'Flop' | 'Non-Hit' | 'TikTok Trend' | 'Hit' | 'Mega Hit';
   streams: {
     spotify: number;
     appleMusic: number;
@@ -191,6 +191,12 @@ export interface GameState {
     youtubeSubscribers?: number;
     socialFollowers?: number;
     lastWrappedTotalStreams?: number;
+    currentYearRevenue?: number;
+    currentMonthStreamingRev?: number;
+    currentMonthSalesRev?: number;
+    currentMonthMerchRev?: number;
+    currentMonthTourRev?: number;
+    currentMonthSongRev?: Record<string, number>;
   };
   time: {
     startDate: string; // ISO string 
@@ -211,7 +217,18 @@ export interface GameState {
   }[];
   tours?: Tour[];
   activeTourId?: string | null;
+  tikTok?: TikTokProfile;
   isGodMode?: boolean;
+  emails?: Email[];
+}
+
+export interface Email {
+  id: string;
+  dateStr: string;
+  sender: string;
+  subject: string;
+  body: string;
+  isRead: boolean;
 }
 
 export type VenueType = 'Cafe' | 'Arena' | 'Stadium';
@@ -277,3 +294,62 @@ export interface DailyReportData {
   tourStage?: string;
 }
 
+export type TikTokPostStatus = 'Initial Push' | 'Testing Phase' | 'Expansion Phase' | 'Viral Phase' | 'Decline Phase' | 'Long Tail Phase';
+
+export interface TikTokPost {
+  id: string;
+  type: 'video' | 'photo' | 'carousel';
+  imageUrl?: string;
+  caption: string;
+  tags: string[];
+  songId?: string; // Optional if they use their own song
+  date: string;
+  views: number;
+  likes: number;
+  comments: number;
+  saves: number;
+  shares: number;
+  isPinned: boolean;
+  algorithmScore: number;
+  thumbnailUrl?: string; 
+  status: TikTokPostStatus;
+  
+  // Realism tracking
+  completionRate: number;
+  rewatchRate: number;
+}
+
+export type TikTokTrendingStatus = 'Non Trend' | 'TikTok Trend' | 'Hits' | 'Mega Hits';
+
+export interface TikTokSoundCampaign {
+  active: boolean;
+  regionsPromoted: number;
+  daysRemaining: number;
+  totalCost: number;
+  budgetSpent: number;
+}
+
+export interface TikTokSound {
+  songId: string;
+  isPinned?: boolean;
+  hasBeenPromoted?: boolean;
+  usedInVideos: number;
+  viewsGenerated: number;
+  trendingStatus: TikTokTrendingStatus;
+  campaign?: TikTokSoundCampaign;
+}
+
+export interface TikTokProfile {
+  followers: number;
+  following: number;
+  totalLikes: number;
+  username: string;
+  displayName: string;
+  isVerified: boolean;
+  label: string;
+  bio?: string;
+  posts: TikTokPost[];
+  sounds: TikTokSound[];
+  fatigueScore: number; // 0 to 100
+  lastPostDate?: string;
+}

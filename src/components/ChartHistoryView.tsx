@@ -39,7 +39,7 @@ export function ChartHistoryView({ gameState, onClose }: ChartHistoryViewProps) 
            peakPos: hist.peakPos,
            peakDate: new Date(hist.peakDate),
            weeksOnChart: hist.weeksOnChart,
-           weeksAtPeak: hist.weeksAtPeak
+           weeksAtPeak: (hist as any).weeksAtPeak || 1
          };
       });
       

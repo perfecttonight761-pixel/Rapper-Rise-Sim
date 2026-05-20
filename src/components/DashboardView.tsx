@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Loader2, Calendar as CalendarIcon, Music, MapPin, X, ArrowUpCircle, FastForward, Pause } from 'lucide-react';
+import { User, Loader2, Calendar as CalendarIcon, Music, MapPin, X, ArrowUpCircle, FastForward, Pause, Mail } from 'lucide-react';
 import { GameState } from '../types';
 import { LEVEL_REQUIREMENTS } from '../constants';
 
@@ -32,6 +32,8 @@ export function DashboardView({
 }: DashboardViewProps) {
   const [showSchedule, setShowSchedule] = useState(false);
   const [showLevelModal, setShowLevelModal] = useState(false);
+  const [showInbox, setShowInbox] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
 
   const getUpcomingEvents = () => {
     if (!gameState) return [];
@@ -100,6 +102,27 @@ export function DashboardView({
          </div>
 
          <div className="absolute top-6 right-6 flex flex-row items-center gap-3 z-20">
+            <button 
+              onClick={() => {
+                  setShowInbox(true);
+                  if (gameState?.emails && gameState.emails.some(e => !e.isRead)) {
+                      setGameState(prev => {
+                          if (!prev || !prev.emails) return prev;
+                          return {
+                              ...prev,
+                              emails: prev.emails.map(e => ({ ...e, isRead: true }))
+                          }
+                      });
+                  }
+              }}
+              className="p-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all flex items-center gap-3 group/btn backdrop-blur-md active:scale-95 relative"
+            >
+               <Mail className="w-5 h-5 text-blue-400" />
+               <span className="text-[10px] uppercase tracking-[0.2em] font-black text-white/50 group-hover/btn:text-white transition-colors hidden sm:block">Inbox</span>
+               {gameState?.emails && gameState.emails.some(e => !e.isRead) && (
+                   <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse border-2 border-[#111]" />
+               )}
+            </button>
             <button 
               onClick={() => setShowSchedule(true)}
               className="p-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all flex items-center gap-3 group/btn backdrop-blur-md active:scale-95"
@@ -390,6 +413,80 @@ export function DashboardView({
                       </div>
                     )
                  })}
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Inbox Modal */}
+      {showInbox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
+           <div className="bg-[#0A0A0D] border border-white/10 rounded-[2rem] p-6 max-w-2xl w-full max-h-[80vh] flex flex-col shadow-2xl relative">
+              <button 
+                onClick={() => {
+                    setShowInbox(false);
+                    setSelectedEmail(null);
+                }}
+                className="absolute top-6 right-6 p-2 bg-white/5 hover:bg-white/10 text-white/50 hover:text-white rounded-full transition-colors"
+              >
+                 <X className="w-5 h-5" />
+              </button>
+              
+              <h2 className="text-2xl font-bold tracking-tighter italic text-blue-400 mb-6 uppercase flex items-center gap-3">
+                 <Mail className="w-6 h-6" /> INBOX
+              </h2>
+
+              <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+                 {selectedEmail ? (() => {
+                     const email = gameState?.emails?.find(e => e.id === selectedEmail);
+                     if (!email) {
+                         setSelectedEmail(null);
+                         return null;
+                     }
+                     return (
+                         <div className="flex flex-col animate-in fade-in zoom-in-95">
+                             <button onClick={() => setSelectedEmail(null)} className="mb-4 text-white/50 hover:text-white text-sm flex items-center gap-2 font-medium w-fit transition-colors">
+                                 ← Back to Inbox
+                             </button>
+                             <div className="flex flex-col mb-6 pb-6 border-b border-white/10">
+                                 <span className="text-blue-400 font-bold tracking-widest text-xs uppercase mb-1">{email.sender}</span>
+                                 <span className="text-white font-bold text-2xl mb-2 leading-tight">{email.subject}</span>
+                                 <span className="text-white/40 text-[11px] tracking-widest uppercase">
+                                     {new Date(email.dateStr).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                 </span>
+                             </div>
+                             <div className="text-white/80 text-[15px] leading-relaxed whitespace-pre-wrap">
+                                 {email.body}
+                             </div>
+                         </div>
+                     );
+                 })() : (!gameState?.emails || gameState.emails.length === 0) ? (
+                    <div className="text-center py-12">
+                       <Mail className="w-12 h-12 text-white/10 mx-auto mb-4" />
+                       <div className="text-white/40 tracking-widest uppercase text-sm">Your inbox is empty</div>
+                    </div>
+                 ) : (
+                    gameState.emails.map(email => (
+                       <button 
+                          key={email.id} 
+                          onClick={() => setSelectedEmail(email.id)}
+                          className="w-full relative text-left bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-5 flex flex-col transition-all group"
+                       >
+                          <div className="flex justify-between items-start w-full">
+                             <div className="flex flex-col pr-4">
+                                <span className="text-blue-400 font-bold tracking-widest text-[10px] uppercase mb-1">{email.sender}</span>
+                                <span className={`text-white font-bold text-[15px] group-hover:text-blue-300 transition-colors ${email.isRead ? 'opacity-80' : ''}`}>{email.subject}</span>
+                             </div>
+                             <span className="text-white/40 text-[10px] tracking-widest uppercase whitespace-nowrap mt-1">
+                                {new Date(email.dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                             </span>
+                          </div>
+                          {!email.isRead && (
+                             <span className="absolute top-5 right-5 w-2 h-2 bg-blue-500 rounded-full"></span>
+                          )}
+                       </button>
+                    ))
+                 )}
               </div>
            </div>
         </div>

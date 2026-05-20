@@ -21,6 +21,8 @@ import { SettingsView } from './components/SettingsView';
 import { PlaquesView } from './components/PlaquesView';
 import { GrammysView } from './components/GrammysView';
 import { SpotifyWrappedView } from './components/SpotifyWrappedView';
+import { TikTokView } from './components/TikTokView';
+import { processTikTokDaily } from './tiktokUtils';
 
 import { TourView } from './components/TourView';
 
@@ -251,6 +253,10 @@ export default function App() {
       let dailyStreams = 0;
       let dailySales = 0;
       let revenue = 0;
+      let dailyStreamingRev = 0;
+      let dailySalesRev = 0;
+      let dailySongRev: Record<string, number> = {};
+      
       let topSong: string | null = null;
       let topAlbum: string | null = null;
       let maxSongStreams = -1;
@@ -315,6 +321,41 @@ export default function App() {
          return r;
       });
 
+      let tikTokStreams: Record<string, number> = {};
+      let updatedTikTok = gameState.tikTok ? JSON.parse(JSON.stringify(gameState.tikTok)) : undefined;
+
+      if (updatedTikTok) {
+         // Auto-add published singles to TikTok sounds
+         workingReleases.forEach(r => {
+             if (r.type === 'Single' && r.status === 'Published') {
+                 const exists = updatedTikTok.sounds?.find((s: any) => s.songId === r.id);
+                 if (!exists) {
+                     let startingTrend = 'Non Trend';
+                     if (r.trend === 'Hit') startingTrend = 'Hits';
+                     else if (r.trend === 'Mega Hit') startingTrend = 'Mega Hits';
+                     else if (r.trend === 'TikTok Trend') startingTrend = 'TikTok Trend';
+
+                     updatedTikTok.sounds?.push({
+                         songId: r.id,
+                         usedInVideos: 0,
+                         viewsGenerated: 0,
+                         trendingStatus: startingTrend
+                     });
+                 }
+             }
+         });
+
+         const tRes = processTikTokDaily(
+             updatedTikTok,
+             workingReleases,
+             (gameState.popularity?.america || 0 + (gameState.popularity?.europe || 0) + (gameState.popularity?.latinAmerica || 0)) / 3
+         );
+         if (tRes) {
+             updatedTikTok = tRes.updatedProfile;
+             tikTokStreams = tRes.tikTokStreamsDelta;
+         }
+      }
+
       const updatedReleases = workingReleases.map(release => {
         let currentStatus = release.status;
 
@@ -346,18 +387,28 @@ export default function App() {
             
             // Introduce more variance for normal songs so they don't all get the same streams
             let hitMultiplier = 0.4 + (intrinsicHitFactor * 0.8); // 0.4 to 1.2 for normal songs
-            let currentTrend: 'Flop' | 'Non-Hit' | 'Hit' | 'Mega Hit' = 'Non-Hit';
+            let currentTrend: 'Flop' | 'Non-Hit' | 'TikTok Trend' | 'Hit' | 'Mega Hit' = 'Non-Hit';
 
             // Mega Hit: strict requirement of incredibly high luck roll (~0.3% chance) and high intrinsic value
-            const isMegaHit = baseHitFactor >= 0.997 && intrinsicHitFactor >= 0.95;
-            const isHit = !isMegaHit && intrinsicHitFactor > 0.85;
+            let isMegaHit = baseHitFactor >= 0.997 && intrinsicHitFactor >= 0.95;
+            let isHit = !isMegaHit && intrinsicHitFactor > 0.85;
+
+            // TikTok Overrides
+            const tkSound = updatedTikTok?.sounds.find(s => s.songId === release.id);
+            if (tkSound) {
+                if (tkSound.trendingStatus === 'Mega Hits') isMegaHit = true;
+                else if (tkSound.trendingStatus === 'Hits') isHit = true;
+            }
 
             if (isMegaHit) {
-                hitMultiplier = 3.5 + (intrinsicHitFactor * 2); // Massive hit
+                hitMultiplier = Math.max(hitMultiplier, 3.5 + (intrinsicHitFactor * 2)); // Massive hit
                 currentTrend = 'Mega Hit';
             } else if (isHit) {
-                hitMultiplier = 2.0 + (intrinsicHitFactor); // Big hit
+                hitMultiplier = Math.max(hitMultiplier, 2.0 + (intrinsicHitFactor)); // Big hit
                 currentTrend = 'Hit';
+            } else if (tkSound?.trendingStatus === 'TikTok Trend') {
+                hitMultiplier = Math.max(hitMultiplier, 1.5 + (intrinsicHitFactor * 0.5)); // Mild hit
+                currentTrend = 'TikTok Trend';
             } else if (intrinsicHitFactor < 0.15) {
                 hitMultiplier = 0.2 + (intrinsicHitFactor); // Flop
                 currentTrend = 'Flop';
@@ -370,22 +421,35 @@ export default function App() {
                const bSideViralChance = (hash % 100) / 100; // 0 to 0.99
                // Nerf: Only ~10% chance for a B-side to remain a Mega Hit, and ~20% for a Hit
                if (isMegaHit && bSideViralChance > 0.90) {
-                   hitMultiplier = 3.5 + (intrinsicHitFactor * 2); 
+                   hitMultiplier = Math.max(hitMultiplier, 3.5 + (intrinsicHitFactor * 2)); 
                    currentTrend = 'Mega Hit';
                } else if (isHit && bSideViralChance > 0.80) {
-                   hitMultiplier = 2.0 + (intrinsicHitFactor); 
+                   hitMultiplier = Math.max(hitMultiplier, 2.0 + (intrinsicHitFactor)); 
                    currentTrend = 'Hit';
+               } else if (tkSound?.trendingStatus === 'TikTok Trend' && bSideViralChance > 0.60) {
+                   hitMultiplier = Math.max(hitMultiplier, 1.5 + (intrinsicHitFactor * 0.5));
+                   currentTrend = 'TikTok Trend';
                } else if (intrinsicHitFactor < 0.15) {
                    hitMultiplier = 0.2 * 0.15;
                    currentTrend = 'Flop';
                } else {
                    hitMultiplier *= 0.15; // Normal B-side nerf
-                   currentTrend = 'Non-Hit';
+                   currentTrend = tkSound?.trendingStatus === 'TikTok Trend' ? 'TikTok Trend' : 'Non-Hit';
                }
             }
 
             const hitLongevity = Math.max(1, hitMultiplier);
             const longevityMultiplier = (qualityMod * 0.5) + (artistLevel * 0.15) + (hitLongevity * 0.5); // Usually 1.5 to ~5
+
+            // Sync with TikTok sound
+            if (updatedTikTok) {
+                const tkSoundSync = updatedTikTok.sounds.find((s: any) => s.songId === release.id);
+                if (tkSoundSync) {
+                    if (currentTrend === 'Mega Hit' && tkSoundSync.trendingStatus !== 'Mega Hits') tkSoundSync.trendingStatus = 'Mega Hits';
+                    else if (currentTrend === 'Hit' && !['Mega Hits', 'Hits'].includes(tkSoundSync.trendingStatus)) tkSoundSync.trendingStatus = 'Hits';
+                    else if (currentTrend === 'TikTok Trend' && tkSoundSync.trendingStatus === 'Non Trend') tkSoundSync.trendingStatus = 'TikTok Trend';
+                }
+            }
 
             const daysSinceRelease = release.releaseDate ? Math.max(0, Math.floor((currentDateObj.getTime() - new Date(release.releaseDate).getTime()) / (1000 * 3600 * 24))) : 0;
 
@@ -517,6 +581,12 @@ export default function App() {
             if (daysSinceRelease > 10 && Math.random() < 0.005) {
                 dStreamsTotal = Math.floor(dStreamsTotal * 4); // single day viral boost
             }
+            
+            // Add TikTok Viral Boost
+            const extraTikTokStreams = tikTokStreams[release.id] || 0;
+            if (extraTikTokStreams > 0) {
+                dStreamsTotal += extraTikTokStreams;
+            }
 
             // Sales logic based on contemporary industry standards where sales are a fraction of stream engagement
             const digitalSaleRate = isSong ? 0.0002 : 0.0015; // e.g. 20M streams -> 4k single sales. 10M album streams -> 15k digital album sales
@@ -531,10 +601,18 @@ export default function App() {
             const streamingRev = dStreamsTotal * 0.00007; // Extra hard payout: $0.00007 per stream (100k streams = $7)
             
             revenue += salesRev;
+            dailySalesRev += salesRev;
+            
+            let currentReleaseRev = salesRev;
+
             if (isSong) {
                 revenue += streamingRev;
+                dailyStreamingRev += streamingRev;
+                currentReleaseRev += streamingRev;
             }
             
+            dailySongRev[release.id] = currentReleaseRev;
+
             // Occasional viral spike (1% chance per day)
             // (Moved to top before dStreamsTotal calculation)
             if (isSong) {
@@ -929,7 +1007,24 @@ export default function App() {
         
         const nextDaysPassed = prev.time.daysPassed + 1;
         const reachedNextWeek = nextDaysPassed % 7 === 0;
+
+        const prevDateObj = new Date(prev.time.startDate);
+        prevDateObj.setDate(prevDateObj.getDate() + prev.time.daysPassed);
+        const nextDateObj = new Date(prev.time.startDate);
+        nextDateObj.setDate(nextDateObj.getDate() + nextDaysPassed);
+        const isNewMonth = nextDateObj.getMonth() !== prevDateObj.getMonth();
         
+        // Accumulate monthly stats
+        let newMonthStreamingRev = (prev.stats.currentMonthStreamingRev || 0) + dailyStreamingRev;
+        let newMonthSalesRev = (prev.stats.currentMonthSalesRev || 0) + dailySalesRev;
+        let newMonthMerchRev = (prev.stats.currentMonthMerchRev || 0) + merchRevenue;
+        let newMonthTourRev = (prev.stats.currentMonthTourRev || 0) + tourTicketRevenue + gigPayouts;
+        
+        let newMonthSongRev = { ...(prev.stats.currentMonthSongRev || {}) };
+        Object.entries(dailySongRev).forEach(([k, v]) => {
+             newMonthSongRev[k] = (newMonthSongRev[k] || 0) + v;
+        });
+
         // Level Up Logic
         let currentLvl = prev.artist?.level || 0;
         
@@ -1186,6 +1281,84 @@ export default function App() {
            }
         }
 
+        let newEmails = prev.emails ? [...prev.emails] : [];
+        let newCurrentYearRevenue = (prev.stats.currentYearRevenue || 0) + revenue;
+        let finalMoney = prev.stats.money + revenue;
+
+        if (nextDaysPassed > 0 && nextDaysPassed % 365 === 0) {
+            let taxRate = 0;
+            if (newCurrentYearRevenue > 10000000) taxRate = 0.40;
+            else if (newCurrentYearRevenue > 1000000) taxRate = 0.35;
+            else if (newCurrentYearRevenue > 500000) taxRate = 0.28;
+            else if (newCurrentYearRevenue > 100000) taxRate = 0.20;
+            else if (newCurrentYearRevenue > 25000) taxRate = 0.15;
+            else if (newCurrentYearRevenue > 10000) taxRate = 0.10;
+
+            const taxAmount = Math.floor(newCurrentYearRevenue * taxRate);
+            finalMoney -= taxAmount;
+
+            newEmails.unshift({
+               id: `tax_${Date.now()}_${Math.random()}`,
+               dateStr: currentDateObj.toISOString(),
+               sender: "Global Revenue Authority",
+               subject: "Annual Tax Deduction Report",
+               body: `Dear ${prev.artist?.name || 'Artist'},\n\n This is a notification that your annual tax has been automatically deducted from your account balance.\n\nAnnual Revenue: $${Math.floor(newCurrentYearRevenue).toLocaleString()}\nTax Bracket: ${(taxRate * 100).toFixed(0)}%\n\nTax Amount Deducted: $${taxAmount.toLocaleString()}\n\nThank you for your contribution.`,
+               isRead: false
+            });
+
+            newCurrentYearRevenue = 0;
+        }
+
+        if (isNewMonth) {
+            const totalMonthlyVar = newMonthStreamingRev + newMonthSalesRev + newMonthMerchRev + newMonthTourRev;
+            if (totalMonthlyVar > 0) {
+                const spotifyRev = Math.floor(newMonthStreamingRev * 0.55);
+                const appleRev = Math.floor(newMonthStreamingRev * 0.35);
+                const ytRev = Math.floor(newMonthStreamingRev * 0.10);
+                
+                let topSongId = '';
+                let topSongRev = -1;
+                Object.entries(newMonthSongRev).forEach(([id, r]) => {
+                    if (r > topSongRev) {
+                        topSongRev = r;
+                        topSongId = id;
+                    }
+                });
+                const topSongTitle = topSongId ? (prev.releases.find(r => r.id === topSongId)?.title || 'Unknown') : 'N/A';
+
+                const bodyTxt = `Monthly Revenue Report - ${prevDateObj.toLocaleString('en-US', {month: 'long', year: 'numeric'})}
+
+Total Monthly Revenue: $${Math.floor(totalMonthlyVar).toLocaleString()}
+
+Platform Breakdown:
+• Spotify: $${spotifyRev.toLocaleString()}
+• Apple Music: $${appleRev.toLocaleString()}
+• YouTube Music: $${ytRev.toLocaleString()}
+• Digital & Physical Sales: $${Math.floor(newMonthSalesRev).toLocaleString()}
+• Merchandise: $${Math.floor(newMonthMerchRev).toLocaleString()}
+• Tours & Live Gigs: $${Math.floor(newMonthTourRev).toLocaleString()}
+
+Top Generating Song:
+"${topSongTitle}" ($${Math.floor(topSongRev).toLocaleString()})
+`;
+                newEmails.unshift({
+                   id: `report_${Date.now()}_${Math.random()}`,
+                   dateStr: currentDateObj.toISOString(),
+                   sender: "Management",
+                   subject: `${prevDateObj.toLocaleString('en-US', {month: 'short'})} Revenue Report`,
+                   body: bodyTxt,
+                   isRead: false
+                });
+            }
+
+            // reset
+            newMonthStreamingRev = 0;
+            newMonthSalesRev = 0;
+            newMonthMerchRev = 0;
+            newMonthTourRev = 0;
+            newMonthSongRev = {};
+        }
+
         return {
           ...prev,
           artist: prev.artist ? { 
@@ -1204,7 +1377,13 @@ export default function App() {
           stats: {
             ...prev.stats,
             lastWrappedTotalStreams: newLastWrappedTotalStreams,
-            money: prev.stats.money + revenue,
+            currentYearRevenue: newCurrentYearRevenue,
+            currentMonthStreamingRev: newMonthStreamingRev,
+            currentMonthSalesRev: newMonthSalesRev,
+            currentMonthMerchRev: newMonthMerchRev,
+            currentMonthTourRev: newMonthTourRev,
+            currentMonthSongRev: newMonthSongRev,
+            money: finalMoney,
             streams: prev.stats.streams + dailyStreams,
             sales: (prev.stats.sales || 0) + dailySales,
             awards: prev.stats.awards + totalPlayerWinsAtCeremony,
@@ -1223,8 +1402,10 @@ export default function App() {
           tours: updatedTours,
           activeTourId,
           videos: updatedVideos,
+          tikTok: updatedTikTok,
           grammys: nextGrammys,
-          wrappedHistory: newWrappedHistory
+          wrappedHistory: newWrappedHistory,
+          emails: newEmails
         };
       });
 
@@ -1297,6 +1478,18 @@ export default function App() {
         america: 0,
         latinAmerica: 0,
         europe: 0
+      },
+      tikTok: {
+        followers: Math.floor(Math.random() * 500) + 100,
+        following: Math.floor(Math.random() * 50) + 10,
+        totalLikes: 0,
+        username: artistData.name.toLowerCase().replace(/[^a-z0-9]/g, '') + 'official',
+        displayName: artistData.name,
+        isVerified: false,
+        label: 'Artist',
+        posts: [],
+        sounds: [],
+        fatigueScore: 0
       },
       time: {
         startDate: INITIAL_DATE,
@@ -1371,18 +1564,12 @@ export default function App() {
                    </div>
                 </div>
                 
-                <div className="space-y-4 mb-4">
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">📊 Dynamic Charts & Streams</h3>
-                     <p className="text-xs text-white/50 leading-relaxed">Player songs now properly calculate daily streams in Apple Music, Amazon Music, and YouTube Music. NPCs now have platform-specific performance multipliers. Chart histories display weeks at peak properly.</p>
-                  </div>
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">🎵 Album Types & EPs</h3>
-                     <p className="text-xs text-white/50 leading-relaxed">You can now release Single Packs (1-3 tracks), EPs (4-7 tracks), and Full Albums (8+ tracks) in the studio.</p>
-                  </div>
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                     <h3 className="text-sm font-bold text-white mb-1 tracking-tight">📀 Deluxe Editions</h3>
-                     <p className="text-xs text-white/50 leading-relaxed">Extend your eras! Release Deluxe versions of your existing projects with new covers and bonus tracks from your discography.</p>
+                 <div className="space-y-4 mb-4">
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                      <h3 className="font-bold text-lg mb-2 text-pink-400">TikTok Update!</h3>
+                      <p className="text-sm text-white/70 leading-relaxed">
+                        A full TikTok simulation has been added! Manage your profile, build followers, post viral videos, launch sound campaigns, and boost your songs directly to the Billboard charts! Chart History Weeks bug is also fixed.
+                      </p>
                   </div>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4">
@@ -1753,6 +1940,36 @@ export default function App() {
                 <svg viewBox="0 0 24 24" aria-hidden="true" className="w-4 h-4 fill-current"><g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></g></svg>
                 X (Social)
               </button>
+              <button 
+                onClick={() => { 
+                   if (!gameState.tikTok) {
+                       setGameState(prev => {
+                           if(!prev) return prev;
+                           return {
+                               ...prev,
+                               tikTok: {
+                                    followers: Math.floor(Math.random() * 500) + 100,
+                                    following: Math.floor(Math.random() * 50) + 10,
+                                    totalLikes: 0,
+                                    username: prev.artist.name.toLowerCase().replace(/[^a-z0-9]/g, '') + 'official',
+                                    displayName: prev.artist.name,
+                                    isVerified: false,
+                                    label: 'Artist',
+                                    posts: [],
+                                    sounds: [],
+                                    fatigueScore: 0
+                               }
+                           }
+                       });
+                   }
+                   setScreen('tiktok'); 
+                   setSidebarOpen(false); 
+                }}
+                className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium transition-colors ${screen === 'tiktok' ? 'bg-pink-600/20 text-pink-200 border border-pink-500/30' : 'bg-transparent text-white/40 hover:bg-white/5 hover:text-white'}`}
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M19.589 6.686a4.793 4.793 0 01-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 01-5.201 1.743l-.002-.001.002.001a2.895 2.895 0 013.183-4.51v-3.5a6.329 6.329 0 00-5.394 10.692 6.33 6.33 0 0010.857-4.424V8.687a8.182 8.182 0 004.773 1.526V6.79a4.831 4.831 0 01-1.003-.104z"></path></svg>
+                TikTok
+              </button>
               
               <div className="h-px bg-white/10 my-2" />
               
@@ -1830,6 +2047,12 @@ export default function App() {
       {screen === 'youtube' && (
         <div className="fixed inset-0 z-[60] bg-black text-white w-full h-full overflow-hidden flex justify-center">
            <YouTubeView gameState={gameState!} setGameState={setGameState} onClose={() => setScreen('dashboard')} />
+        </div>
+      )}
+
+      {screen === 'tiktok' && (
+        <div className="fixed inset-0 z-[60] bg-black text-white w-full h-full overflow-hidden flex justify-center">
+           <TikTokView gameState={gameState!} setGameState={setGameState as any} onClose={() => setScreen('dashboard')} />
         </div>
       )}
 

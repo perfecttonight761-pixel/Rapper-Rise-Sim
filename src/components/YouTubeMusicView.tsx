@@ -18,7 +18,7 @@ export function YouTubeMusicView({ gameState }: YouTubeMusicViewProps) {
     const projects = publishedReleases.filter(r => isProject(r.type));
     const allProjectTrackIds = new Set(projects.flatMap(p => (p as Album).trackIds || []));
 
-    const songs = publishedReleases.filter(r => r.type === 'Single' && !allProjectTrackIds.has(r.id)) as Song[];
+    const songs = publishedReleases.filter(r => r.type === 'Single' && !(r as Song).isBSide) as Song[];
     const albums = publishedReleases.filter(r => ['Album', 'Deluxe Album'].includes(r.type)) as Album[];
     const epsAndSinglePacks = publishedReleases.filter(r => ['EP', 'Single Pack'].includes(r.type)) as Album[];
     
@@ -27,7 +27,7 @@ export function YouTubeMusicView({ gameState }: YouTubeMusicViewProps) {
     const videos = gameState.videos || [];
 
     const handleSelectRelease = (rel: Release) => {
-        if (rel.type === 'Single' && allProjectTrackIds.has(rel.id)) {
+        if (rel.type === 'Single' && (rel as Song).isBSide) {
             const parentAlbum = projects.find(a => (a as Album).trackIds.includes(rel.id));
             if (parentAlbum) {
                 setSelectedRelease(parentAlbum);

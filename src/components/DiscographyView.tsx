@@ -26,7 +26,7 @@ export function DiscographyView({ gameState, setGameState, currentDate }: Discog
   const albums = releases.filter(r => ['Album', 'Deluxe Album'].includes(r.type));
   const epsAndSinglePacks = releases.filter(r => ['EP', 'Single Pack'].includes(r.type));
 
-  const standaloneSingles = releases.filter(r => r.type === 'Single' && !allProjectTrackIds.has(r.id));
+  const standaloneSingles = releases.filter(r => r.type === 'Single' && !(r as Song).isBSide);
   const albumTracks = releases.filter(r => r.type === 'Single' && allProjectTrackIds.has(r.id));
 
   const sectionsByStatus = {

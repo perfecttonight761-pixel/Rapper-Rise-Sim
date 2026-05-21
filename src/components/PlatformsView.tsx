@@ -48,14 +48,14 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
   const albums = publishedReleases.filter(r => ['Album', 'Deluxe Album'].includes(r.type)) as Album[];
   const epsAndSinglePacks = publishedReleases.filter(r => ['EP', 'Single Pack'].includes(r.type)) as Album[];
   
-  const standaloneSingles = publishedReleases.filter(r => r.type === 'Single' && !allProjectTrackIds.has(r.id));
+  const standaloneSingles = publishedReleases.filter(r => r.type === 'Single' && !(r as Song).isBSide);
   const singlesAndEPs = [...epsAndSinglePacks, ...standaloneSingles];
   
   const standaloneReleases = [...albums, ...singlesAndEPs];
   const songs = publishedReleases.filter(r => r.type === 'Single') as Song[];
 
   const handleSelectAmazonRelease = (rel: Release) => {
-     if (rel.type === 'Single' && allProjectTrackIds.has(rel.id)) {
+     if (rel.type === 'Single' && (rel as Song).isBSide) {
         const album = projects.find(a => (a as Album).trackIds.includes(rel.id));
         if (album) {
            setSelectedAmazonRelease(album);
@@ -66,7 +66,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
   };
 
   const handleSelectRelease = (rel: Release) => {
-     if (rel.type === 'Single' && allProjectTrackIds.has(rel.id)) {
+     if (rel.type === 'Single' && (rel as Song).isBSide) {
         const album = projects.find(a => (a as Album).trackIds.includes(rel.id));
         if (album) {
            setSelectedSpotifyRelease(album);
@@ -421,7 +421,7 @@ export function PlatformsView({ gameState, setGameState }: PlatformsViewProps) {
   };
 
   const handleSelectAppleRelease = (rel: Release) => {
-     if (rel.type === 'Single' && allProjectTrackIds.has(rel.id)) {
+     if (rel.type === 'Single' && (rel as Song).isBSide) {
         const album = projects.find(a => (a as Album).trackIds.includes(rel.id));
         if (album) {
            setSelectedAppleRelease(album);

@@ -561,16 +561,18 @@ export default function App() {
                 rawStreamsTotal *= 2.35;
             }
 
-            // Apply global softcap log function if streams get into astronomical ranges for some reason (God Mode)
-            if (rawStreamsTotal > 15000000) {
-                 rawStreamsTotal = 15000000 + Math.pow(rawStreamsTotal - 15000000, 0.65); 
+            // Apply global softcap log function based on hitMultiplier to allow massive hits to scale farther
+            const softCapThreshold = 10000000 + (hitMultiplier * 4000000);
+            if (rawStreamsTotal > softCapThreshold) {
+                 rawStreamsTotal = softCapThreshold + Math.pow(rawStreamsTotal - softCapThreshold, 0.68 + (hitMultiplier * 0.02)); 
             }
             
             // SUPERSTAR CATALOG FLOOR:
-            // The player complained that Level 10+ artists with max popularity get 800 plays on old songs.
-            // Taylor Swift's worst old flop gets ~20k-40k minimum. This enforces a realistic bottom for established acts.
+            // Prevents old songs from dying completely, but now scales with song popularity/identity
             const globalPopForFloor = Math.max(1, (gameState.popularity?.america || 0) + (gameState.popularity?.europe || 0) + (gameState.popularity?.latinAmerica || 0));
-            const superstarHardFloor = isSong ? Math.floor((globalPopForFloor / 100) * artistLevel * 220) : Math.floor((globalPopForFloor / 100) * artistLevel * 550); 
+            // Apply hitMultiplier and B-side penalty to the legacy stream floor to give songs individual identities
+            const legacyIdentityMultiplier = (hitMultiplier * 0.5) * (isBSide ? 0.15 : 1.0); 
+            const superstarHardFloor = isSong ? Math.floor((globalPopForFloor / 100) * artistLevel * 250 * Math.max(0.2, legacyIdentityMultiplier)) : Math.floor((globalPopForFloor / 100) * artistLevel * 750); 
             if (rawStreamsTotal < superstarHardFloor && daysSinceRelease > 14) { 
                 rawStreamsTotal = Math.max(rawStreamsTotal, superstarHardFloor * (Math.random() * 0.2 + 0.9));
             }
@@ -583,6 +585,15 @@ export default function App() {
             }
             
             // Add TikTok Viral Boost
+            let finalTikTokMultiplier = 1.0;
+            const tkSoundState = updatedTikTok?.sounds.find((s: any) => s.songId === release.id);
+            if (tkSoundState) {
+                if (tkSoundState.trendingStatus === 'Mega Hits') finalTikTokMultiplier = 2.5;
+                else if (tkSoundState.trendingStatus === 'Hits') finalTikTokMultiplier = 1.5;
+                else if (tkSoundState.trendingStatus === 'TikTok Trend') finalTikTokMultiplier = 1.25;
+            }
+            dStreamsTotal = Math.floor(dStreamsTotal * finalTikTokMultiplier);
+
             const extraTikTokStreams = tikTokStreams[release.id] || 0;
             if (extraTikTokStreams > 0) {
                 dStreamsTotal += extraTikTokStreams;
@@ -1246,14 +1257,18 @@ export default function App() {
                const streamsThisYear = (prev.stats.streams || 0) + dailyStreams - newLastWrappedTotalStreams;
                const spotifyStreamsThisYear = Math.floor(streamsThisYear * 0.42); // Estimate since we don't track it exactly per year
                
+               const getSpotifyStreams = (itemStreams: any) => typeof itemStreams === 'number' ? Math.floor(itemStreams * 0.4) : (itemStreams?.spotify || 0);
+
                const songs = updatedReleasesWithSales.filter(r => r.type === 'Single').map(s => {
-                   const spotifyThisYear = Math.max(0, (s.streams?.spotify || 0) - (s.lastWrappedStreams?.spotify || 0));
+                   const sStreams = getSpotifyStreams(s.streams);
+                   const spotifyThisYear = Math.max(0, sStreams - (s.lastWrappedStreams?.spotify || 0));
                    return { ...s, spotifyThisYear };
                }).sort((a, b) => b.spotifyThisYear - a.spotifyThisYear).slice(0, 5);
                const topSongs = songs.map(s => ({ title: s.title, streams: s.spotifyThisYear, image: s.coverImage }));
                   
                const albums = updatedReleasesWithSales.filter(r => ['Album', 'EP', 'Single Pack', 'Deluxe Album'].includes(r.type)).map(a => {
-                   const spotifyThisYear = Math.max(0, (a.streams?.spotify || 0) - (a.lastWrappedStreams?.spotify || 0));
+                   const aStreams = getSpotifyStreams(a.streams);
+                   const spotifyThisYear = Math.max(0, aStreams - (a.lastWrappedStreams?.spotify || 0));
                    return { ...a, spotifyThisYear };
                }).sort((a, b) => b.spotifyThisYear - a.spotifyThisYear).slice(0, 5);
                const topAlbums = albums.map(a => ({ title: a.title, streams: a.spotifyThisYear, image: a.coverImage }));
@@ -1271,13 +1286,17 @@ export default function App() {
                newLastWrappedTotalStreams = (prev.stats.streams || 0) + dailyStreams;
                
                // Update lastWrappedStreams for all releases
-               updatedReleasesWithSales = updatedReleasesWithSales.map(r => ({
-                   ...r,
-                   lastWrappedStreams: {
-                       spotify: r.streams?.spotify || 0,
-                       total: r.streams?.total || 0,
-                   }
-               }));
+               updatedReleasesWithSales = updatedReleasesWithSales.map(r => {
+                   const oldTotal = typeof r.streams === 'number' ? r.streams : (r.streams?.total || 0);
+                   const oldSpotify = typeof r.streams === 'number' ? Math.floor(oldTotal * 0.4) : (r.streams?.spotify || 0);
+                   return {
+                       ...r,
+                       lastWrappedStreams: {
+                           spotify: oldSpotify,
+                           total: oldTotal,
+                       }
+                   };
+               });
            }
         }
 

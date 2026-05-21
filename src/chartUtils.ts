@@ -104,16 +104,16 @@ export const computeCharts = (gameState: GameState) => {
                 type: npc.type,
                 isPlayer: false,
                 coverImage: npc.coverImage || ARTIST_IMAGES[npc.artist as string] || `https://i.pravatar.cc/200?u=${encodeURIComponent(npc.artist)}`,
-                points: npc.points * 0.82,
-                computedTotal: npc.points * 0.82,
-                activity: npc.points * 1.2 * 0.82,
-                albums: npc.type === 'Album' ? npc.points * 0.35 * 0.82 : 0,
+                points: npc.points * 1.1,
+                computedTotal: npc.points * 1.1,
+                activity: npc.points * 1.2 * 1.1,
+                albums: npc.type === 'Album' ? npc.points * 0.35 * 1.1 : 0,
                 isReEntrySim: isReEntry,
                 regionalPoints: {
-                    america: npc.points * popAm * 0.82,
-                    latinAmerica: npc.points * popLat * 0.82,
-                    europe: npc.points * popEur * 0.82,
-                    global: npc.points * 0.82
+                    america: npc.points * popAm * 1.1,
+                    latinAmerica: npc.points * popLat * 1.1,
+                    europe: npc.points * popEur * 1.1,
+                    global: npc.points * 1.1
                 }
             };
         });
